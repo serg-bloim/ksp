@@ -6,6 +6,7 @@ local numbers is "0123456789".
 local max_elevation is 500.
 local fine_tune_cooldown is 10.
 local stable_since is 0.
+local needs_pause is FALSE.
 declare function inp {
     until not terminal:input:haschar {
         local ch to terminal:input:getchar.
@@ -110,6 +111,15 @@ until 0 {
         if TIME:SECONDS - stable_since > fine_tune_cooldown {
             set fine_tune_alt to target_alt + fine_tune_alt - SHIP:ALTITUDE.
             set stable_since to TIME:SECONDS.
+        }
+        if air_dist < 15000 {
+            if needs_pause{
+                KUniverse:PAUSE().
+                print "unpaused".
+                set needs_pause to FALSE.
+            }
+        } else {
+            set needs_pause to TRUE.
         }
         LOCK STEERING to direct_3d.
     }
