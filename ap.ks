@@ -57,7 +57,8 @@ when KUniverse:CANQUICKSAVE then {
 until 0 {
     clearscreen.
     inp().
-    print "Target altitude:    " + target_alt + " (+ " + round(fine_tune_alt, 1) + " tune)".
+    print "Target altitude:    " + target_alt.
+    print "Tune altitude:    + " + round(fine_tune_alt, 1).
     print "Stable for (s): " + round(TIME:SECONDS - stable_since,1).
     set wp to get_active_waypoint().
     if wp = 0 {
