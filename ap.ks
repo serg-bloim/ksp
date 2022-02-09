@@ -50,6 +50,9 @@ declare function get_active_waypoint {
     return 0.
 }
 SAS OFF.
+when KUniverse:CANQUICKSAVE then {
+    KUniverse:QUICKSAVETO("Autopilot_start").
+}
 until 0 {
     clearscreen.
     inp().
@@ -59,38 +62,41 @@ until 0 {
     if wp = 0 {
         print "No waypoint selected".
     } else {
+        set sbp to -SHIP:BODY:POSITION.
+        set air_dist to VECTORANGLE((wp:position+sbp), sbp) * sbp:MAG * constant:DegToRad.
         print wp.
+        print "Travel distance: " + (CHOOSE ROUND(air_dist/1000, 1) + " km" if air_dist > 10000 ELSE ROUND(air_dist) + " m").
         set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt + fine_tune_alt).
         if my_pos_alt:mag > max_elevation{
             set my_pos_alt:mag to max_elevation.
         }
-        CLEARVECDRAWS().
+//        CLEARVECDRAWS().
 
-        VECDRAW(
-                ship:position,
-                        my_pos_alt,
-                        RGB(1,0,0),
-                        my_pos_alt:MAG,
-                        1.0,
-                        TRUE,
-                        0.2,
-                        TRUE,
-                        TRUE
-                ).
+//        VECDRAW(
+//                ship:position,
+//                        my_pos_alt,
+//                        RGB(1,0,0),
+//                        my_pos_alt:MAG,
+//                        1.0,
+//                        TRUE,
+//                        0.2,
+//                        TRUE,
+//                        TRUE
+//                ).
         set direct_surf to VECTOREXCLUDE(ship:up:FOREVECTOR, wp:position).
         set direct_surf:mag to 1000.
         set direct_3d to my_pos_alt + direct_surf.
-        VECDRAW(
-                ship:position,
-                        direct_3d,
-                        RGB(1,0,1),
-                        "",
-                        1.0,
-                        TRUE,
-                        0.2,
-                        TRUE,
-                        TRUE
-                ).
+//        VECDRAW(
+//                ship:position,
+//                        direct_3d,
+//                        RGB(1,0,1),
+//                        "",
+//                        1.0,
+//                        TRUE,
+//                        0.2,
+//                        TRUE,
+//                        TRUE
+//                ).
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
         }
