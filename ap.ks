@@ -1,8 +1,11 @@
 local target_alt is SHIP:ALTITUDE.
+local fine_tune_alt is 0.
 local inp_state is 0.
 local new_alt is "".
 local numbers is "0123456789".
 local max_elevation is 500.
+local fine_tune_cooldown is 10.
+local fine_tune_cooldown_exp is 0.
 declare function inp {
     until not terminal:input:haschar {
         local ch to terminal:input:getchar.
@@ -50,7 +53,8 @@ SAS OFF.
 until 0 {
     clearscreen.
     inp().
-    print "Target height: " + target_alt.
+    print "Target altitude:    " + target_alt.
+    print "Fine tune altitude: " + fine_tune_alt.
     set wp to get_active_waypoint().
     if wp = 0 {
         print "No waypoint selected".
@@ -58,7 +62,7 @@ until 0 {
         print wp.
         print "WP pos: " + wp:position.
         print wp:GEOPOSITION:bearing.
-        set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt).
+        set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt + fine_tune_alt).
         if my_pos_alt:mag > max_elevation{
             set my_pos_alt:mag to max_elevation.
         }
@@ -98,6 +102,10 @@ until 0 {
             UNLOCK STEERING.
             BREAK.
         }
+		if ABS(SHIP:VERTICALSPEED) < 1 and TIME:SECONDS > fine_tune_cooldown_exp {
+			set fine_tune_alt to target_alt + fine_tune_alt - SHIP:ALTITUDE.
+			set fine_tune_cooldown_exp to TIME:SECONDS + fine_tune_cooldown.
+		}
         LOCK STEERING to direct_3d.
     }
     WAIT 0.05.
