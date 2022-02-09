@@ -7,12 +7,20 @@ local max_elevation is 500.
 local fine_tune_cooldown is 10.
 local stable_since is 0.
 local needs_pause is FALSE.
+local refresh_delay is 0.05.
+local enabled is FALSE.
 declare function inp {
     until not terminal:input:haschar {
         local ch to terminal:input:getchar.
         if inp_state = 0 {
             if ch = "c"{
                 set inp_state to 1.
+            }
+            else if ch = "s"{
+                set enabled to TRUE.
+            }
+            else if ch = "t"{
+                set enabled to FALSE.
             }
             else if ch = terminal:input:UPCURSORONE{
                 set target_alt to target_alt + 100.
@@ -50,24 +58,27 @@ declare function get_active_waypoint {
     }
     return 0.
 }
-SAS OFF.
 when KUniverse:CANQUICKSAVE then {
     KUniverse:QUICKSAVETO("Autopilot_start").
 }
 until 0 {
     clearscreen.
     inp().
-    print "Target altitude:    " + target_alt.
-    print "Tune altitude:    + " + round(fine_tune_alt, 1).
-    print "Stable for (s): " + round(TIME:SECONDS - stable_since,1).
     set wp to get_active_waypoint().
-    if wp = 0 {
-        print "No waypoint selected".
+    if wp = 0 or not enabled {
+        print "Autopilot disabled".
     } else {
         set sbp to -SHIP:BODY:POSITION.
         set air_dist to VECTORANGLE((wp:position+sbp), sbp) * sbp:MAG * constant:DegToRad.
+        print "Target altitude:    " + target_alt.
+        print "Tune altitude:    + " + round(fine_tune_alt, 1).
+        print "Stable for (s): " + round(TIME:SECONDS - stable_since,1).
         print wp.
         print "Travel distance: " + (CHOOSE ROUND(air_dist/1000, 1) + " km" if air_dist > 10000 ELSE ROUND(air_dist) + " m").
+        print "".
+        print "Flight plan:".
+
+
         set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt + fine_tune_alt).
         if my_pos_alt:mag > max_elevation{
             set my_pos_alt:mag to max_elevation.
@@ -104,7 +115,7 @@ until 0 {
         }
         if SAS {
             UNLOCK STEERING.
-            BREAK.
+            set enabled to FALSE.
         }
 		if ABS(SHIP:VERTICALSPEED) > 1{
 			set stable_since to TIME:SECONDS.
@@ -114,6 +125,11 @@ until 0 {
             set stable_since to TIME:SECONDS.
         }
         if air_dist < 15000 {
+            if air_dist < 1000 {
+                SAS ON.
+                UNLOCK STEERING.
+                set enabled to FALSE.
+            }
             if needs_pause{
                 KUniverse:PAUSE().
                 print "unpaused".
@@ -124,5 +140,5 @@ until 0 {
         }
         LOCK STEERING to direct_3d.
     }
-    WAIT 0.05.
+    WAIT refresh_delay.
 }
