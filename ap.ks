@@ -9,6 +9,15 @@ local stable_since is 0.
 local needs_pause is FALSE.
 local refresh_delay is 0.05.
 local enabled is FALSE.
+declare function disable{
+    set enabled to FALSE.
+    SAS ON.
+    UNLOCK STEERING.
+}
+declare function enable{
+    set enabled to TRUE.
+    SAS OFF.
+}
 declare function inp {
     until not terminal:input:haschar {
         local ch to terminal:input:getchar.
@@ -17,10 +26,10 @@ declare function inp {
                 set inp_state to 1.
             }
             else if ch = "s"{
-                set enabled to TRUE.
+               enable.
             }
             else if ch = "t"{
-                set enabled to FALSE.
+                disable.
             }
             else if ch = terminal:input:UPCURSORONE{
                 set target_alt to target_alt + 100.
@@ -63,6 +72,7 @@ when KUniverse:CANQUICKSAVE then {
 }
 until 0 {
     clearscreen.
+    print "Autopilot v1".
     inp().
     set wp to get_active_waypoint().
     if wp = 0 or not enabled {
@@ -83,52 +93,26 @@ until 0 {
         if my_pos_alt:mag > max_elevation{
             set my_pos_alt:mag to max_elevation.
         }
-//        CLEARVECDRAWS().
 
-//        VECDRAW(
-//                ship:position,
-//                        my_pos_alt,
-//                        RGB(1,0,0),
-//                        my_pos_alt:MAG,
-//                        1.0,
-//                        TRUE,
-//                        0.2,
-//                        TRUE,
-//                        TRUE
-//                ).
         set direct_surf to VECTOREXCLUDE(ship:up:FOREVECTOR, wp:position).
         set direct_surf:mag to 1000.
         set direct_3d to my_pos_alt + direct_surf.
-//        VECDRAW(
-//                ship:position,
-//                        direct_3d,
-//                        RGB(1,0,1),
-//                        "",
-//                        1.0,
-//                        TRUE,
-//                        0.2,
-//                        TRUE,
-//                        TRUE
-//                ).
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
         }
         if SAS {
-            UNLOCK STEERING.
-            set enabled to FALSE.
+            disable.
         }
-		if ABS(SHIP:VERTICALSPEED) > 1{
-			set stable_since to TIME:SECONDS.
-		}
+        if ABS(SHIP:VERTICALSPEED) > 1{
+            set stable_since to TIME:SECONDS.
+        }
         if TIME:SECONDS - stable_since > fine_tune_cooldown {
             set fine_tune_alt to target_alt + fine_tune_alt - SHIP:ALTITUDE.
             set stable_since to TIME:SECONDS.
         }
         if air_dist < 15000 {
             if air_dist < 1000 {
-                SAS ON.
-                UNLOCK STEERING.
-                set enabled to FALSE.
+                disable.
             }
             if needs_pause{
                 KUniverse:PAUSE().
