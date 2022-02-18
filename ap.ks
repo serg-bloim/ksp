@@ -8,14 +8,15 @@ local fine_tune_cooldown is 10.
 local stable_since is 0.
 local needs_pause is FALSE.
 local refresh_delay is 0.05.
-local enabled is FALSE.
+local old_rcs is RCS.
+local wp to 0.
 declare function disable{
-    set enabled to FALSE.
+    RCS OFF.
     SAS ON.
     UNLOCK STEERING.
 }
 declare function enable{
-    set enabled to TRUE.
+    RCS ON.
     SAS OFF.
 }
 declare function inp {
@@ -26,7 +27,7 @@ declare function inp {
                 set inp_state to 1.
             }
             else if ch = "s"{
-               enable.
+                enable.
             }
             else if ch = "t"{
                 disable.
@@ -72,12 +73,20 @@ when KUniverse:CANQUICKSAVE then {
 }
 until 0 {
     clearscreen.
-    print "Autopilot v1".
+    print "Autopilot v3".
     inp().
-    set wp to get_active_waypoint().
-    if wp = 0 or not enabled {
+    if wp = 0 or not wp:isselected{
+        set wp to get_active_waypoint().
+    }
+    if wp = 0 or not RCS {
         print "Autopilot disabled".
+        if old_rcs{
+            disable.
+        }
     } else {
+        if not old_rcs {
+            SAS OFF.
+        }
         set sbp to -SHIP:BODY:POSITION.
         set air_dist to VECTORANGLE((wp:position+sbp), sbp) * sbp:MAG * constant:DegToRad.
         print "Target altitude:    " + target_alt.
@@ -97,6 +106,7 @@ until 0 {
         set direct_surf to VECTOREXCLUDE(ship:up:FOREVECTOR, wp:position).
         set direct_surf:mag to 1000.
         set direct_3d to my_pos_alt + direct_surf.
+        LOCK STEERING to direct_3d.
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
         }
@@ -122,7 +132,7 @@ until 0 {
         } else {
             set needs_pause to TRUE.
         }
-        LOCK STEERING to direct_3d.
     }
+    set old_rcs to RCS.
     WAIT refresh_delay.
 }
