@@ -89,12 +89,13 @@ function show_rot {
 function show_vect {
     declare parameter vec.
     declare parameter lbl is "".
-    VECDRAW(V(0,0,0),vec, red, lbl, 1, true).
+    declare parameter color is red.
+    VECDRAW(V(0,0,0),vec, color, lbl, 1, true).
 }
 until 0 {
     clearscreen.
     CLEARVECDRAWS().
-    print "Autopilot v3".
+    print "Autopilot v4".
     inp().
     if wp = 0 or not wp:isselected{
         set wp to get_active_waypoint().
@@ -128,18 +129,32 @@ until 0 {
         set direct_surf:mag to 1000.
         set direct_3d to my_pos_alt + direct_surf.
 
-        show_vect(direct_3d, "direct_3d").
 
-        set steering_dir to LOOKDIRUP(SHIP:FACING:vector, direct_3d).
-        set pitch to vang(SHIP:FACING:vector, direct_3d).
-        if pitch > 30 set pitch to 30.
-        set roll_diff to ABS(steering_dir:roll - SHIP:FACING:roll).
-        if roll_diff > 5 {
-            set pitch to pitch * 2 / (roll_diff - 3).
+        set azimuth to vang(VXCL(UP:Vector, SHIP:FACING:vector), VXCL(UP:Vector, direct_3d)).
+        //show_vect(direct_3d, "direct_3d").
+        print "azimuth = " + azimuth.
+        if ABS(azimuth) < 10 {
+            print "mode precise".
+            LOCK STEERING to LOOKDIRUP(direct_3d, direct_3d + UP:vector * 10000).
+        }else{
+            print "mode wide turn".
+            set horizon_facing to HEADING(SHIP:BEARING, 0,0).
+            set pitch to -limit(azimuth,0,40).
+            set local_target to LOOKDIRUP(SHIP:FACING:vector, direct_3d) *  R(pitch, 0 , 0). // Roll against target and pitch 40 degrees.
+            set local_target to VXCL(UP:VECTOR, local_target:Vector). // Project onto horizon.
+            set local_target:mag to 1.
+            //show_vect(local_target*1000, "local_target").
+            set local_target to local_target + UP:Vector*0.2.
+            //show_vect(local_target*1000, "local_target_adg", green).
+            set steering_dir to LOOKDIRUP(SHIP:FACING:vector, local_target).
+            set roll_diff to ABS(steering_dir:roll - SHIP:FACING:roll).
+            if roll_diff > 5 {
+                set pitch to pitch * 2 / (roll_diff - 3).
+            }
+            //show_rot(steering_dir * R(pitch,0,0)).
+            LOCK STEERING to steering_dir * R(pitch,0,0).
         }
-        print "pitch = " + pitch.
-        show_rot(steering_dir * R(-pitch,0,0)).
-        LOCK STEERING to steering_dir * R(-pitch,0,0).
+
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
         }
