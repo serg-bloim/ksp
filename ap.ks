@@ -1,3 +1,19 @@
+RUNONCEPATH("ui/ui.ks").
+local ap_ui_disabled is ui_reg(open("ap-ui/dis.txt"):readall():STRING).
+local ap_ui_main is ui_reg(open("ap-ui/main.txt"):readall():STRING).
+local ap_ui_change_alt is ui_reg(open("ap-ui/chalt.txt"):readall():STRING).
+
+local ap_ui_main_alt is ui_reg_lbl(ap_ui_main, 17,2,12).
+local ap_ui_main_alt_tune is ui_reg_lbl(ap_ui_main, 19,3,7).
+local ap_ui_main_stable is ui_reg_lbl(ap_ui_main, 14,5,7).
+local ap_ui_main_dst is ui_reg_lbl(ap_ui_main, 14,6,14).
+local ap_ui_main_mode is ui_reg_lbl(ap_ui_main, 14,7,14).
+local ap_ui_main_wp_l1 is ui_reg_lbl(ap_ui_main, 14,8,14).
+local ap_ui_main_wp_l2 is ui_reg_lbl(ap_ui_main, 2,9,26).
+
+local ap_ui_chalt_curr is ui_reg_lbl(ap_ui_change_alt, 16,3,12).
+local ap_ui_chalt_new is ui_reg_lbl(ap_ui_change_alt, 16,5,12).
+
 local target_alt is round(SHIP:ALTITUDE).
 local fine_tune_alt is 0.
 local inp_state is 0.
@@ -10,14 +26,24 @@ local needs_pause is FALSE.
 local refresh_delay is 0.05.
 local old_rcs is RCS.
 local wp to 0.
+local wp_old_name is "".
+
+function show_main_ui{
+    ui_switch(ap_ui_main).
+    ui_prnt_lbl(ap_ui_main_alt, target_alt).
+    ui_prnt_lbl(ap_ui_main_alt_tune, fine_tune_alt).
+    ui_prnt_lbl(ap_ui_main_stable, round(TIME:SECONDS - stable_since,1)).
+}
 declare function disable{
     RCS OFF.
     SAS ON.
     UNLOCK STEERING.
+    ui_switch(ap_ui_disabled).
 }
 declare function enable{
     RCS ON.
     SAS OFF.
+    show_main_ui.
 }
 function limit{
     declare parameter val.
@@ -33,6 +59,8 @@ declare function inp {
         if inp_state = 0 {
             if ch = "c"{
                 set inp_state to 1.
+                ui_switch(ap_ui_change_alt).
+                ui_prnt_lbl(ap_ui_chalt_curr, target_alt).
             }
             else if ch = "s"{
                 enable.
@@ -42,9 +70,11 @@ declare function inp {
             }
             else if ch = terminal:input:UPCURSORONE{
                 set target_alt to target_alt + 100.
+                ui_prnt_lbl(ap_ui_main_alt, target_alt).
             }
             else if ch = terminal:input:DOWNCURSORONE{
                 set target_alt to target_alt - 100.
+                ui_prnt_lbl(ap_ui_main_alt, target_alt).
             }
         } else if inp_state = 1 {
             if numbers:find(ch) >= 0 {
@@ -55,17 +85,15 @@ declare function inp {
             } else if ch = "q"{
                 set new_alt to "".
                 set inp_state to 0.
+                show_main_ui.
             } else if ch = terminal:input:ENTER {
                 set target_alt to new_alt:tonumber(target_alt).
                 set new_alt to "".
                 set inp_state to 0.
+                show_main_ui.
             }
+            ui_prnt_lbl(ap_ui_chalt_new, new_alt).
         }
-    }
-    if inp_state = 1 {
-        print "Enter new altitude: " + new_alt.
-        print " ".
-        print " ".
     }
 }
 declare function get_active_waypoint {
@@ -92,32 +120,33 @@ function show_vect {
     declare parameter color is red.
     VECDRAW(V(0,0,0),vec, color, lbl, 1, true).
 }
+disable().
 until 0 {
-    clearscreen.
     CLEARVECDRAWS().
-    print "Autopilot v4".
     inp().
     if wp = 0 or not wp:isselected{
         set wp to get_active_waypoint().
     }
+
     if wp = 0 or not RCS {
-        print "Autopilot disabled".
         if old_rcs{
             disable.
         }
     } else {
+        if wp:name <> wp_old_name{
+            ui_prnt_lbl(ap_ui_main_wp_l1, wp:name:substring(0,min(14, wp:name:length))).
+            if wp:name:length > 14 {
+                ui_prnt_lbl(ap_ui_main_wp_l2, wp:name:substring(14,min(wp:name:length - 14, 26))).
+            }
+        }
         if not old_rcs {
             SAS OFF.
+            show_main_ui.
         }
         set sbp to -SHIP:BODY:POSITION.
         set air_dist to VECTORANGLE((wp:position+sbp), sbp) * sbp:MAG * constant:DegToRad.
-        print "Target altitude:    " + target_alt.
-        print "Tune altitude:    + " + round(fine_tune_alt, 1).
-        print "Stable for (s): " + round(TIME:SECONDS - stable_since,1).
-        print wp.
-        print "Travel distance: " + (CHOOSE ROUND(air_dist/1000, 1) + " km" if air_dist > 10000 ELSE ROUND(air_dist) + " m").
-        print "".
-        print "Flight plan:".
+        ui_prnt_lbl(ap_ui_main_stable, round(TIME:SECONDS - stable_since,1)).
+        ui_prnt_lbl(ap_ui_main_dst, (CHOOSE ROUND(air_dist/1000, 1) + " km" if air_dist > 10000 ELSE ROUND(air_dist) + " m")).
 
 
         set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt + fine_tune_alt).
@@ -131,13 +160,12 @@ until 0 {
 
 
         set azimuth to vang(VXCL(UP:Vector, SHIP:FACING:vector), VXCL(UP:Vector, direct_3d)).
-        //show_vect(direct_3d, "direct_3d").
-        print "azimuth = " + azimuth.
+
         if ABS(azimuth) < 10 {
-            print "mode precise".
+            ui_prnt_lbl(ap_ui_main_mode, "precise").
             LOCK STEERING to LOOKDIRUP(direct_3d, direct_3d + UP:vector * 10000).
         }else{
-            print "mode wide turn".
+            ui_prnt_lbl(ap_ui_main_mode, "wide turn").
             set horizon_facing to HEADING(SHIP:BEARING, 0,0).
             set pitch to -limit(azimuth,0,40).
             set local_target to LOOKDIRUP(SHIP:FACING:vector, direct_3d) *  R(pitch, 0 , 0). // Roll against target and pitch 40 degrees.
@@ -157,6 +185,7 @@ until 0 {
 
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
+            ui_prnt_lbl(ap_ui_main_alt, target_alt).
         }
         if SAS {
             disable.
@@ -174,7 +203,6 @@ until 0 {
             }
             if needs_pause{
                 KUniverse:PAUSE().
-                print "unpaused".
                 set needs_pause to FALSE.
             }
         } else {
