@@ -19,6 +19,14 @@ declare function enable{
     RCS ON.
     SAS OFF.
 }
+function limit{
+    declare parameter val.
+    declare parameter min.
+    declare parameter max.
+    if val > max return max.
+    if val < min return min.
+    return val.
+}
 declare function inp {
     until not terminal:input:haschar {
         local ch to terminal:input:getchar.
@@ -71,8 +79,21 @@ declare function get_active_waypoint {
 when KUniverse:CANQUICKSAVE then {
     KUniverse:QUICKSAVETO("Autopilot_start").
 }
+function show_rot {
+    declare parameter rot.
+    set front to rot:vector*1000.
+    set up1 to rot:upvector*500.
+    VECDRAW(V(0,0,0),front, red, "", 1, true).
+    VECDRAW(V(0,0,0),up1, blue, "", 1, true).
+}
+function show_vect {
+    declare parameter vec.
+    declare parameter lbl is "".
+    VECDRAW(V(0,0,0),vec, red, lbl, 1, true).
+}
 until 0 {
     clearscreen.
+    CLEARVECDRAWS().
     print "Autopilot v3".
     inp().
     if wp = 0 or not wp:isselected{
@@ -106,7 +127,19 @@ until 0 {
         set direct_surf to VECTOREXCLUDE(ship:up:FOREVECTOR, wp:position).
         set direct_surf:mag to 1000.
         set direct_3d to my_pos_alt + direct_surf.
-        LOCK STEERING to direct_3d.
+
+        show_vect(direct_3d, "direct_3d").
+
+        set steering_dir to LOOKDIRUP(SHIP:FACING:vector, direct_3d).
+        set pitch to vang(SHIP:FACING:vector, direct_3d).
+        if pitch > 30 set pitch to 30.
+        set roll_diff to ABS(steering_dir:roll - SHIP:FACING:roll).
+        if roll_diff > 5 {
+            set pitch to pitch * 2 / (roll_diff - 3).
+        }
+        print "pitch = " + pitch.
+        show_rot(steering_dir * R(-pitch,0,0)).
+        LOCK STEERING to steering_dir * R(-pitch,0,0).
         if SHIP:CONTROL:PILOTPITCH <> 0{
             set target_alt to round((target_alt + 100 * SHIP:CONTROL:PILOTPITCH)/10)*10.
         }
