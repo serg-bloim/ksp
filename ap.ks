@@ -27,11 +27,18 @@ local refresh_delay is 0.05.
 local old_rcs is RCS.
 local wp to 0.
 local wp_old_name is "".
+set pitchPID to PIDLOOP(
+                0.1,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                0.03,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                0.1,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                -5,   // min possible throttle is zero.
+                15    // max possible throttle is one.
+        ).
 
 function show_main_ui{
     ui_switch(ap_ui_main).
     ui_prnt_lbl(ap_ui_main_alt, target_alt).
-    ui_prnt_lbl(ap_ui_main_alt_tune, fine_tune_alt).
+    ui_prnt_lbl(ap_ui_main_alt_tune, round(fine_tune_alt, 6)).
     ui_prnt_lbl(ap_ui_main_stable, round(TIME:SECONDS - stable_since,1)).
 }
 declare function disable{
@@ -109,10 +116,12 @@ when KUniverse:CANQUICKSAVE then {
 }
 function show_rot {
     declare parameter rot.
-    set front to rot:vector*1000.
-    set up1 to rot:upvector*500.
+    set front to rot:vector*20.
+    set up1 to rot:upvector*20.
+    set star to rot:STARVECTOR*20.
     VECDRAW(V(0,0,0),front, red, "", 1, true).
     VECDRAW(V(0,0,0),up1, blue, "", 1, true).
+    VECDRAW(V(0,0,0),star, green, "", 1, true).
 }
 function show_vect {
     declare parameter vec.
@@ -141,6 +150,8 @@ until 0 {
         }
         if not old_rcs {
             SAS OFF.
+            set steering_dir to FACING.
+            LOCK STEERING to steering_dir.
             show_main_ui.
         }
         set sbp to -SHIP:BODY:POSITION.
@@ -163,7 +174,15 @@ until 0 {
 
         if ABS(azimuth) < 10 {
             ui_prnt_lbl(ap_ui_main_mode, "precise").
-            LOCK STEERING to LOOKDIRUP(direct_3d, direct_3d + UP:vector * 10000).
+            set mag_delta to target_alt - SHIP:ALTITUDE.
+            set vel_target to mag_delta / 10.
+            set pitch to pitchPID:UPDATE(TIME:SECONDS, SHIP:VERTICALSPEED).
+            set pitchPID:SETPOINT to vel_target.
+            set pitch_axis to VCRS(direct_surf, SHIP:UP:VECTOR).
+            set fwd to direct_surf.
+            set direct_3d to ANGLEAXIS(pitch, pitch_axis)*fwd*50.
+            SET steering_dir to LOOKDIRUP(direct_3d, direct_3d + UP:vector * 10000).
+            ui_prnt_lbl(ap_ui_main_alt_tune, round(pitch, 2)).
         }else{
             ui_prnt_lbl(ap_ui_main_mode, "wide turn").
             set horizon_facing to HEADING(SHIP:BEARING, 0,0).
@@ -171,16 +190,13 @@ until 0 {
             set local_target to LOOKDIRUP(SHIP:FACING:vector, direct_3d) *  R(pitch, 0 , 0). // Roll against target and pitch 40 degrees.
             set local_target to VXCL(UP:VECTOR, local_target:Vector). // Project onto horizon.
             set local_target:mag to 1.
-            //show_vect(local_target*1000, "local_target").
             set local_target to local_target + UP:Vector*0.2.
-            //show_vect(local_target*1000, "local_target_adg", green).
-            set steering_dir to LOOKDIRUP(SHIP:FACING:vector, local_target).
-            set roll_diff to ABS(steering_dir:roll - SHIP:FACING:roll).
+            set dir to LOOKDIRUP(SHIP:FACING:vector, local_target).
+            set roll_diff to ABS(dir:roll - SHIP:FACING:roll).
             if roll_diff > 5 {
                 set pitch to pitch * 2 / (roll_diff - 3).
             }
-            //show_rot(steering_dir * R(pitch,0,0)).
-            LOCK STEERING to steering_dir * R(pitch,0,0).
+            SET steering_dir to dir * R(pitch,0,0).
         }
 
         if SHIP:CONTROL:PILOTPITCH <> 0{
@@ -196,6 +212,7 @@ until 0 {
         if TIME:SECONDS - stable_since > fine_tune_cooldown {
             set fine_tune_alt to target_alt + fine_tune_alt - SHIP:ALTITUDE.
             set stable_since to TIME:SECONDS.
+            ui_prnt_lbl(ap_ui_main_alt_tune, round(fine_tune_alt, 6)).
         }
         if air_dist < 15000 {
             if air_dist < 1000 {
