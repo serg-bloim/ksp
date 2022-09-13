@@ -1,3 +1,4 @@
+CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 CLEARSCREEN.
@@ -8,19 +9,18 @@ SAS OFF.
 LOCK THROTTLE TO 1.0.
 LOCK STEERING TO UP.
 //countdown(3).
-set stage1res to SHIP:PARTSDUBBED("stage4.booster")[0]:RESOURCES[0].
-set stage2res to SHIP:PARTSDUBBED("stage3.tank")[0]:RESOURCES[0].
+local stage_cnt to 1.
+for p in SHIP:PARTSTAGGED("stage_on_empty"){
+    print "Staging part detected: " + p:NAME.
+    local res is p:RESOURCES[0].
+    local stage_iter to stage_cnt.
+    set stage_cnt to stage_cnt + 1.
+    WHEN res:AMOUNT = 0 THEN{
+        print "Staging " + stage_iter.
+        STAGE.
+    }
+}
 STAGE.
-
-WHEN stage1res:AMOUNT = 0 THEN{
-    print "Stage 1 done".
-    STAGE.
-}
-
-WHEN stage2res:AMOUNT = 0 THEN{
-    print "Stage 2 done".
-    STAGE.
-}
 
 ON SHIP:SRFPROGRADE {
     CLEARVECDRAWS().
@@ -40,11 +40,13 @@ PRINT "ALTITUDE > 10000".
 lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.
 WAIT UNTIL VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR) > 44.
-PRINT "Angle attach = 45°".
+PRINT "Angle attack = 45°".
 set dir_east_45degree to ANGLEAXIS(-45,SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO dir_east_45degree.
 WAIT UNTIL SHIP:ALTITUDE > 30000.
+lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:PROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.
-WAIT UNTIL SHIP:ALTITUDE > 70000.
-
+WAIT UNTIL SHIP:ORBIT:APOAPSIS > 80000.
+LOCK THROTTLE TO 0.
+print "Apoapsis reached!".
 print "We've got into space!".
