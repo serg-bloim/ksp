@@ -1,4 +1,5 @@
 CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
+RUNONCEPATH("util/maneuvers.ks").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 CLEARSCREEN.
@@ -22,21 +23,13 @@ for p in SHIP:PARTSTAGGED("stage_on_empty"){
 }
 STAGE.
 
-ON SHIP:SRFPROGRADE {
-    CLEARVECDRAWS().
-    show_rot(SHIP:SRFPROGRADE).
-    return true.
-}
 set dir_east_10degree to ANGLEAXIS(-10,SHIP:UP:TOPVECTOR)*SHIP:UP.
-show_rot(SHIP:UP).
-show_rot(dir_east_10degree).
-
 
 WAIT UNTIL VDOT(SHIP:VELOCITY:SURFACE, SHIP:UP:VECTOR) > 100.
 PRINT "SPEED > 100 m/s".
 LOCK STEERING TO dir_east_10degree.
 WAIT UNTIL SHIP:ALTITUDE > 10000.
-PRINT "ALTITUDE > 10000".
+PRINT "ALTITUDE > 10k".
 lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.
 WAIT UNTIL VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR) > 44.
@@ -44,9 +37,21 @@ PRINT "Angle attack = 45°".
 set dir_east_45degree to ANGLEAXIS(-45,SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO dir_east_45degree.
 WAIT UNTIL SHIP:ALTITUDE > 30000.
+PRINT "ALTITUDE > 30k".
 lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:PROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.
-WAIT UNTIL SHIP:ORBIT:APOAPSIS > 80000.
+WAIT UNTIL OBT:APOAPSIS > 80000.
 LOCK THROTTLE TO 0.
 print "Apoapsis reached!".
+WAIT UNTIL SHIP:ALTITUDE > 70000.
 print "We've got into space!".
+set ut to TIMESTAMP() + SHIP:OBT:ETA:APOAPSIS.
+set velocity_at_ap to VELOCITYAT(SHIP, ut):ORBIT:MAG.
+set circular_obt_velocity to SQRT(BODY:MU/(BODY:RADIUS+OBT:APOAPSIS)).
+set dv to circular_obt_velocity-velocity_at_ap.
+print "velocity at AP: " + velocity_at_ap.
+print "required velocity at AP: " + circular_obt_velocity.
+print "DV: " + dv.
+SET circular_obt to NODE(ut, 0, 0, dv ).
+ADD circular_obt.
+exec_node(nextnode).
