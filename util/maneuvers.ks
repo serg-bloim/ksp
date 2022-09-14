@@ -1,3 +1,16 @@
+set G0 to 9.80665.
+declare function get_burn_duration{
+    declare parameter dv.
+    declare parameter mass.
+    declare parameter isp.
+    declare parameter thrust.
+    local ex_vel is isp * G0.
+    local flow_rate is thrust / ex_vel.
+    local end_mass is Constant:E ^ (ln(mass) - dv/ex_vel).
+    local dm is mass - end_mass.
+    local burn_time is dm / flow_rate.
+    return burn_time.
+}
 declare function exec_node{
     declare parameter nd.
     //print out node's basic parameters - ETA and deltaV
@@ -21,19 +34,29 @@ declare function exec_node{
     // need to look into the Tsiolkovsky rocket equation to account for
     // the change in mass over time as you burn.
     //
-    set burn_duration to nd:deltav:mag/max_acc.
-    print "Crude Estimated burn duration: " + round(burn_duration) + "s".
+    local total_fuel_consumption is 0.
+    LIST ENGINES in eng.
+    for e in eng{
+        if e:IGNITION{
+            set total_fuel_consumption to total_fuel_consumption + e:MAXMASSFLOW.
+        }
+    }
+    local isp is ship:maxthrust / total_fuel_consumption / G0.
+    set burn_duration to get_burn_duration(nd:deltav:mag, ship:mass, isp, ship:maxthrust).
+    print "Crude Estimated burn duration: " + round(burn_duration, 3) + "s".
 
     wait until nd:eta <= (burn_duration/2 + 60).
 
     set np to nd:deltav. //points to node, don't care about the roll direction.
-    lock steering to np.
+    lock steering to nd:deltav.
 
     //now we need to wait until the burn vector and ship's facing are aligned
-    wait until vang(np, ship:facing:vector) < 0.25.
+    wait until vang(nd:deltav, ship:facing:vector) < 0.25.
+    print "the ship is facing the right direction".
 
     //the ship is facing the right direction, let's wait for our burn time
     wait until nd:eta <= (burn_duration/2).
+    print "burn time".
 
     //we only need to lock throttle once to a certain variable in the beginning of the loop, and adjust only the variable itself inside it
     set tset to 0.
@@ -61,7 +84,7 @@ declare function exec_node{
                         }
 
                 //we have very little left to burn, less then 0.1m/s
-                if nd:deltav:mag < 1
+                if nd:deltav:mag < 0.1
                         {
                             print "Finalizing burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
                             //we burn slowly until our node vector starts to drift significantly from initial vector
