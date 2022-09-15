@@ -42,20 +42,25 @@ declare function exec_node{
         }
     }
     local isp is ship:maxthrust / total_fuel_consumption / G0.
-    set burn_duration to get_burn_duration(nd:deltav:mag, ship:mass, isp, ship:maxthrust).
-    print "Crude Estimated burn duration: " + round(burn_duration, 3) + "s".
+    local burn_duration is get_burn_duration(nd:deltav:mag, ship:mass, isp, ship:maxthrust).
+    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, ship:mass, isp, ship:maxthrust).
 
-    wait until nd:eta <= (burn_duration/2 + 60).
+    print "Estimated burn duration: " + round(burn_duration, 3) + "s".
+    print "Node ETA : " + nd:eta.
+    print "Time to burn : " + (nd:eta - before_midpoint_duration) .
+
+    wait until nd:eta <= (before_midpoint_duration + 60).
 
     set np to nd:deltav. //points to node, don't care about the roll direction.
+    SAS OFF.
     lock steering to nd:deltav.
 
     //now we need to wait until the burn vector and ship's facing are aligned
     wait until vang(nd:deltav, ship:facing:vector) < 0.25.
-    print "the ship is facing the right direction".
+    print "The ship is facing the right direction".
 
     //the ship is facing the right direction, let's wait for our burn time. It's late for ~ 1 sec
-    wait until nd:eta <= (burn_duration/2) + 1.
+    wait until nd:eta <= before_midpoint_duration.
     print "burn time".
 
     //we only need to lock throttle once to a certain variable in the beginning of the loop, and adjust only the variable itself inside it
