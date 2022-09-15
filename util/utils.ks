@@ -8,3 +8,12 @@ declare function countdown{
     }
     PRINT "0".
 }
+local ESC is CHAR(27).
+declare function wait_until_esc{
+    until terminal:input:getchar = ESC{
+
+    }
+}
+declare function esc_pressed{
+    return terminal:input:haschar and terminal:input:getchar = ESC.
+}

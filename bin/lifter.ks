@@ -40,6 +40,7 @@ LOCK STEERING TO dir_east_45degree.
 WAIT UNTIL SHIP:ALTITUDE > 30000.
 PRINT "ALTITUDE > 30k".
 lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:PROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
+
 LOCK STEERING TO prograde_east.
 WAIT UNTIL OBT:APOAPSIS > dst_apoapsis-100.
 LOCK THROTTLE TO 0.01.
@@ -65,4 +66,5 @@ SET circular_obt to NODE(ut, 0, 0, dv ).
 ADD circular_obt.
 exec_node(circular_obt).
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+SAS ON.
 print "DONE".
