@@ -16,8 +16,6 @@ declare function exec_node{
     //print out node's basic parameters - ETA and deltaV
     print "Node in: " + round(nd:eta) + ", DeltaV: " + round(nd:deltav:mag).
 
-    //calculate ship's max acceleration
-    set max_acc to ship:maxthrust/ship:mass.
 
     // Now we just need to divide deltav:mag by our ship's max acceleration
     // to get the estimated time of the burn.
@@ -35,25 +33,27 @@ declare function exec_node{
     // the change in mass over time as you burn.
     //
     local total_fuel_consumption is 0.
+    local total_thrust is 0.
     LIST ENGINES in eng.
     for e in eng{
         if e:IGNITION{
-            set total_fuel_consumption to total_fuel_consumption + e:MAXMASSFLOW.
+            set total_fuel_consumption to total_fuel_consumption + e:MAXMASSFLOW * e:THRUSTLIMIT / 100.
+            set total_thrust to total_thrust + e:MAXTHRUST * e:THRUSTLIMIT / 100.
         }
     }
-    local isp is ship:maxthrust / total_fuel_consumption / G0.
-    local burn_duration is get_burn_duration(nd:deltav:mag, ship:mass, isp, ship:maxthrust).
-    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, ship:mass, isp, ship:maxthrust).
+    local isp is total_thrust / total_fuel_consumption / G0.
+    local burn_duration is get_burn_duration(nd:deltav:mag, ship:mass, isp, total_thrust).
+    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, ship:mass, isp, total_thrust).
 
     print "Estimated burn duration: " + round(burn_duration, 3) + "s".
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
 
-    wait until nd:eta <= (before_midpoint_duration + 60).
-
     set np to nd:deltav. //points to node, don't care about the roll direction.
     SAS OFF.
     lock steering to nd:deltav.
+    wait until nd:eta <= (before_midpoint_duration + 60).
+
 
     //now we need to wait until the burn vector and ship's facing are aligned
     wait until vang(nd:deltav, ship:facing:vector) < 0.25.
@@ -73,7 +73,7 @@ declare function exec_node{
     until done
             {
                 //recalculate current max_acceleration, as it changes while we burn through fuel
-                set max_acc to ship:maxthrust/ship:mass.
+                set max_acc to total_thrust/ship:mass.
 
                 //throttle is 100% until there is less than 1 second of time left to burn
                 //when there is less than 1 second - decrease the throttle linearly
