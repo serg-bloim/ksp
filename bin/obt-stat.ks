@@ -34,22 +34,33 @@ declare function obt_period{
 local nl is "
 ".
 declare function redraw{
-    local txt is "".
-    local i is 0.
+    local txt is "Orbits: " + nl.
+    declare function print_patch{
+        declare parameter patch.
+        set txt to txt +  "  " + patch:NAME + nl.
+        set txt to txt +  "    APOAPSIS :" + patch:APOAPSIS + nl.
+        set txt to txt +  "    PERIAPSIS :" + patch:PERIAPSIS + nl.
+        set txt to txt +  "    INCLINATION :" + patch:INCLINATION + nl.
+        set txt to txt +  "    PERIOD :" + obt_period(patch) + nl.
+        set txt to txt +  nl +" " + nl.
+    }
+    for p in SHIP:PATCHES{
+        print_patch(p).
+    }
     if HASNODE {
         local patch is NEXTNODE:ORBIT.
-        until patch:ISTYPE("Boolean") {
-            set txt to txt +  "  " + patch:NAME + nl.
-            set txt to txt +  "    APOAPSIS :" + patch:APOAPSIS + nl.
-            set txt to txt +  "    PERIAPSIS :" + patch:PERIAPSIS + nl.
-            set txt to txt +  "    INCLINATION :" + patch:INCLINATION + nl.
-            set txt to txt +  "    PERIOD :" + obt_period(patch) + nl.
-            set txt to txt +  nl +" " + nl.
-            if patch:HASNEXTPATCH{
-                set patch to patch:NEXTPATCH.
-            } else{
-                set patch to FALSE.
-            }
+        until not patch:HASNEXTPATCH {
+            print_patch(patch).
+            set patch to patch:NEXTPATCH.
+        }
+        print_patch(patch).
+        local i is 0.
+        local dv_total is 0.
+        set txt to txt  + nl + nl.
+        for n in ALLNODES{
+            set i to i + 1.
+            set dv_total to dv_total + n:DELTAV:MAG.
+            set txt to txt + "Node " + i + " : " + round(n:DELTAV:MAG) + "/" + round(dv_total) + nl.
         }
     }
     CLEARSCREEN.
