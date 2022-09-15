@@ -44,10 +44,13 @@ declare function redraw{
         set txt to txt +  "    PERIOD :" + obt_period(patch) + nl.
         set txt to txt +  nl +" " + nl.
     }
+    set txt to txt + "Actual orbit:" + nl.
     for p in SHIP:PATCHES{
         print_patch(p).
     }
+    set txt to txt + nl.
     if HASNODE {
+        set txt to txt + "Projected orbit:" + nl.
         local patch is NEXTNODE:ORBIT.
         until not patch:HASNEXTPATCH {
             print_patch(patch).
