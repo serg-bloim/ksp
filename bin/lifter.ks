@@ -32,28 +32,31 @@ PRINT "SPEED > 100 m/s".
 LOCK STEERING TO dir_east_10degree.
 WAIT UNTIL SHIP:ALTITUDE > 10000.
 PRINT "ALTITUDE > 10k".
-lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
+lock attack_angle to (0.00001163*SHIP:ALTITUDE*SHIP:ALTITUDE + 0.3531*SHIP:ALTITUDE + 3766)/1000.
+lock prograde_east to ANGLEAXIS(-attack_angle,SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.
-WAIT UNTIL VANG(SHIP:UP:VECTOR, SHIP:SRFPROGRADE:VECTOR) > 44.
-PRINT "Angle attack = 45°".
-set dir_east_45degree to ANGLEAXIS(-45,SHIP:UP:TOPVECTOR)*SHIP:UP.
-LOCK STEERING TO dir_east_45degree.
 WAIT UNTIL SHIP:ALTITUDE > 30000.
 PRINT "ALTITUDE > 30k".
 SET NAVMODE to "ORBIT".
-lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:PROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
-
-LOCK STEERING TO prograde_east.
 WAIT UNTIL OBT:APOAPSIS > dst_apoapsis-100.
 LOCK THROTTLE TO 0.01.
 WAIT UNTIL OBT:APOAPSIS > dst_apoapsis.
 LOCK THROTTLE TO 0.
 print "Apoapsis reached!".
 WAIT UNTIL SHIP:ALTITUDE > 70000.
+LOCK STEERING TO ANGLEAXIS(-85,SHIP:UP:TOPVECTOR)*SHIP:UP.
 print "We've got into space!".
 IF OBT:APOAPSIS < dst_apoapsis {
     print "Correcting APOAPSIS".
-    LOCK THROTTLE TO 0.01.
+    declare local function gentle_throttle{
+        local ap_gap is dst_apoapsis - OBT:APOAPSIS.
+        local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
+        local weight is SHIP:MASS * SHIP:BODY:MU / r / r.
+        local twr is 0.0000116*ap_gap*ap_gap + 0.0038106*ap_gap+0.0033326.
+        local thrust is twr * weight.
+        return thrust / SHIP:MAXTHRUST.
+    }
+    LOCK THROTTLE TO gentle_throttle().
     WAIT UNTIL OBT:APOAPSIS > dst_apoapsis.
     LOCK THROTTLE TO 0.
 }
