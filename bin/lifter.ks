@@ -9,6 +9,7 @@ WAIT UNTIL SAS.
 SAS OFF.
 LOCK THROTTLE TO 1.0.
 LOCK STEERING TO UP.
+print("Launch in...").
 countdown(3).
 local stage_cnt to 1.
 for p in SHIP:PARTSTAGGED("stage_on_empty") {
@@ -39,6 +40,7 @@ set dir_east_45degree to ANGLEAXIS(-45,SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO dir_east_45degree.
 WAIT UNTIL SHIP:ALTITUDE > 30000.
 PRINT "ALTITUDE > 30k".
+SET NAVMODE to "ORBIT".
 lock prograde_east to ANGLEAXIS(-VANG(SHIP:UP:VECTOR, SHIP:PROGRADE:VECTOR),SHIP:UP:TOPVECTOR)*SHIP:UP.
 
 LOCK STEERING TO prograde_east.

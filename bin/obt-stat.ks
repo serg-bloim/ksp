@@ -62,8 +62,9 @@ declare function redraw{
         set txt to txt  + nl + nl.
         for n in ALLNODES{
             set i to i + 1.
-            set dv_total to dv_total + n:DELTAV:MAG.
-            set txt to txt + "Node " + i + " : " + round(n:DELTAV:MAG) + "/" + round(dv_total) + nl.
+            local dv is sqrt(n:PROGRADE^2+n:RADIALOUT^2+n:NORMAL^2).
+            set dv_total to dv_total + dv.
+            set txt to txt + "Node " + i + " : " + round(dv) + "/" + round(dv_total) + nl.
         }
     }
     CLEARSCREEN.
