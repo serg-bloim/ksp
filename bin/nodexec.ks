@@ -1,6 +1,7 @@
 RUNONCEPATH("/util/utils.ks").
 RUNONCEPATH("/util/maneuvers.ks").
 CLEARSCREEN.
+print("Node Execution").
 for nd in ALLNODES {
     if esc_pressed(){
         BREAK.
