@@ -17,3 +17,18 @@ declare function wait_until_esc{
 declare function esc_pressed{
     return terminal:input:haschar and terminal:input:getchar = ESC.
 }
+declare function twr2throttle{
+    parameter twr.
+    local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
+    local weight is SHIP:MASS * SHIP:BODY:MU / r / r.
+    local thrust is twr * weight.
+    return thrust / SHIP:MAXTHRUST.
+}
+declare function current_thrust{
+    local thr to 0.
+    LIST ENGINES in es.
+    for e in es{
+        set thr to thr + e:thrust.
+    }
+    return thr.
+}

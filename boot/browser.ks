@@ -1,4 +1,5 @@
 CLEARSCREEN.
+CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 switch to 0.
 local dir is "bin".
 local max_files is 0.
