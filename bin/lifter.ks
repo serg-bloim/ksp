@@ -9,7 +9,7 @@ if wait_to_start{
     WAIT UNTIL SAS.
 }
 SAS OFF.
-LOCK THROTTLE TO 1.0.
+LOCK THROTTLE TO twr2throttle(3).
 LOCK STEERING TO UP.
 print("Launch in...").
 countdown(3).
@@ -35,6 +35,7 @@ PRINT "SPEED > 100 m/s".
 LOCK STEERING TO dir_east_10degree.
 WAIT UNTIL SHIP:ALTITUDE > 10000.
 PRINT "ALTITUDE > 10k".
+LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
 lock attack_angle to (-7.36E-3*SHIP:ALTITUDE*SHIP:ALTITUDE/1000000 + 1.84*SHIP:ALTITUDE/1000 + -8.1).
 lock prograde_east to ANGLEAXIS(-attack_angle,SHIP:UP:TOPVECTOR)*SHIP:UP.
 LOCK STEERING TO prograde_east.

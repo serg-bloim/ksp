@@ -19,6 +19,10 @@ declare function esc_pressed{
 }
 declare function twr2throttle{
     parameter twr.
+    local maxthrust is SHIP:MAXTHRUST.
+    if maxthrust = 0{
+        return 0.
+    }
     local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
     local weight is SHIP:MASS * SHIP:BODY:MU / r / r.
     local thrust is twr * weight.
