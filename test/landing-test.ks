@@ -1,6 +1,8 @@
 CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
+run "test/strife.ks".
+print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
 print "Landing-test".
@@ -38,7 +40,8 @@ declare function angle_for_dist{
         set d to d / adist * 1000.
     }
 //    0.0132 + -0.0103x + -3.47E-07x^2 + -3.68E-08x^3
-    return 0.0132 -0.0103 * d -3.47E-07*d*d -3.68E-08*d*d*d.
+//    return 3.65E-03 -2.11E-03 * d -7.38E-08*d*d -7.82E-09*d*d*d.
+    return -1.1044486511451808e-08 * d*d*d + 6.574502254576959e-06 * d*d + -0.010533474703402584 * d + 0.0034793071033457855.
 }
 set pitchPID to PIDLOOP(
         1,   // adjust throttle 0.1 per 5m in error from desired altitude.
@@ -62,18 +65,19 @@ set spdPID to PIDLOOP(
                 1    // max possible throttle is one.
         ).
 set headingDiffPID to PIDLOOP(
-        0.1,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                0.001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
-                0,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
-                -10,   // min possible throttle is zero.
-                10    // max possible throttle is one.
+        1,   // adjust throttle 0.1 per 5m in error from desired altitude.
+        0.1,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+        0.1,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+        -10,   // min possible throttle is zero.
+        10    // max possible throttle is one.
         ).
 
 SAS OFF.
 
 lock my_steering to SHIP:FACING.
 set my_throttling to 1.
-lock my_pitch to 0.
+lock my_pitch2 to 0.
+set my_heading to compass(SRFPROGRADE:vector).
 RCS ON.
 if RCS{
     lock steering to my_steering.
@@ -94,26 +98,26 @@ ON RCS{
 local dst_alt is wp1:ALTITUDE-5.
 set velPID:SETPOINT to dst_alt+500.
 set dst_gnd_speed to 500.
-print ("stage 1") at (20,1).
+set stage_n to 1.
 WHEN wp1:POSITION:MAG < 20000 THEN{
-    print ("stage 2") at (20,1).
+    set stage_n to 2.
     SET dst_gnd_speed to 200.
-    lock my_pitch to pitch.
+    lock my_pitch2 to pitch.
 }
 WHEN wp1:POSITION:MAG < 10000 THEN{
-    print ("stage 3") at (20,1).
+    set stage_n to 3.
     SET dst_gnd_speed to 80.
     set velPID:SETPOINT to dst_alt+50.
 }
 WHEN wp1:POSITION:MAG < 2000 THEN{
-    print ("stage 4") at (20,1).
+    set stage_n to 4.
     set velPID:SETPOINT to dst_alt+10.
     GEAR ON.
     BRAKES ON.
     SET dst_gnd_speed to 60.
 }
 WHEN vxcl(UP:VECTOR, wp1:POSITION):MAG < 20 THEN{
-    print ("stage 5") at (20,1).
+    set stage_n to 5.
     set velPID:SETPOINT to dst_alt+1.
     SET THROTTLE to 0.
 }
@@ -125,14 +129,16 @@ DELETEPATH(logfile).
 log "   time,    alt, vspeed, hspeed,vtarget,  pitch, vsp_err" to logfile.
 SET launchTime TO TIME:SECONDS.
 LOCK missionClock TO (TIME:SECONDS - launchTime).
+set prnt_n to 1.
+declare function prnt{
+    parameter lbl.
+    parameter val is "".
+    print (lbl + " : " + val + "                 ") at (1,prnt_n).
+    set prnt_n to prnt_n+1.
+}
+lock my_steering to HEADING(my_heading, my_pitch2, 0).
 until 0 {
-    if RCS{
-        set vel_target to velPID:UPDATE(TIME:SECONDS, SHIP:ALTITUDE).
-        set pitch to pitchPID:UPDATE(TIME:SECONDS, SHIP:VERTICALSPEED).
-        set my_throttling to spdPID:UPDATE(TIME:SECONDS, SHIP:GROUNDSPEED).
-        set pitchPID:SETPOINT to vel_target.
-        set spdPID:SETPOINT to dst_gnd_speed.
-    }
+    set prnt_n to 1.
     local vline is p2-p1.
     set vecd:start to p1.
     set vecd:vec to vline.
@@ -140,22 +146,37 @@ until 0 {
     local nup is VCRS(vline,n).
     local d is -n * p1.
     local a is vang2(SHIP:FACING:VECTOR, vline).
+    local comp_f is compass().
     local comp is compass(SRFPROGRADE:vector).
     local comp_line is compass(vline).
-    print ("DIST : " + (d:TOSTRING) + "                      ") at (1,3).
-    print ("vel target : " + (vel_target:TOSTRING) + "         ") at (1,4).
-    print ("pitch      : " + (pitch:TOSTRING) + "              ") at (1,5).
-
-    lock my_steering to HEADING(comp_line + angle_for_dist(d), my_pitch).
-    print ("angle: " + angle + "                      ") at (1,7).
-    print ("COMPASS SHIP: " + ROUND(comp,2) + " " + round(compass(SRFPROGRADE:vector),2)) at (1,8).
-    print ("COMPASS LINE: " + comp_line + "                      ") at (1,9).
-    print ("COMPASS delta   : " + (comp - comp_line) + "                      ") at (1,10).
-    print ("COMPASS correction   : " + angle_for_dist(d) + "                      ") at (1,11).
-    print ("SHIP:GROUNDSPEED     : " + SHIP:GROUNDSPEED + "                      ") at (1,12).
-    print ("dst_gnd_speed        : " + dst_gnd_speed + "                      ") at (1,12).
-    print ("my_throttling        : " + my_throttling + "                      ") at (1,13).
-    print ("dst_alt              : " + velPID:SETPOINT + "                      ") at (1,13).
+    local afd to angle_for_dist(d).
+    if RCS{
+        set vel_target to velPID:UPDATE(TIME:SECONDS, SHIP:ALTITUDE).
+        set pitch to pitchPID:UPDATE(TIME:SECONDS, SHIP:VERTICALSPEED).
+        set my_throttling to spdPID:UPDATE(TIME:SECONDS, SHIP:GROUNDSPEED).
+        set my_heading_diff to headingDiffPID:UPDATE(TIME:SECONDS, comp).
+        set my_heading_diff to 0.
+        set pitchPID:SETPOINT to vel_target.
+        set spdPID:SETPOINT to dst_gnd_speed.
+        set headingDiffPID:SETPOINT to comp_line + afd.
+        set my_heading to comp_line + afd + my_heading_diff.
+    }
+    prnt("stage       ", stage_n).
+    prnt("DIST        ", d).
+    prnt("vel target  ", vel_target).
+    prnt("pitch       ", pitch).
+    prnt("").
+    prnt("Direction").
+    prnt("COMPASS LINE          ", comp_line).
+    prnt("COMPASS GOAL          ", round(comp_line,2) + " + " + round(afd,2) + " = " + (comp_line+afd)).
+    prnt("COMPASS SHIP FACING   ", comp_f + " / " + (comp_f - (comp_line+afd))).
+    prnt("COMPASS SHIP PROGRADE ", comp +   " / " + (comp - (comp_line+afd))).
+    prnt("COMPASS correction    ", afd).
+    prnt("my_heading            ", my_heading).
+    prnt("my_heading_diff       ", my_heading_diff).
+    prnt("").
+    prnt("Dest ground speed     ", dst_gnd_speed).
+    prnt("Dest alt              ", velPID:SETPOINT).
     LOG round(missionClock,1):TOSTRING:PADLEFT(7)
             + "," + round(SHIP:ALTITUDE):TOSTRING:PADLEFT(7)
             +"," +round(SHIP:VERTICALSPEED,2):TOSTRING:PADLEFT(7)
