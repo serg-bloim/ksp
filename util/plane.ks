@@ -1,3 +1,28 @@
+declare function vang2{
+    parameter v1.
+    parameter v2.
+    local res is vang(v1, v2).
+    if vang(UP:VECTOR, VCRS(v1, v2)) > 90{
+        set res to - res.
+    }
+    return res.
+}
+declare function compass{
+    parameter dir is FACING:VECTOR.
+    return mod(360+vang2(NORTH:vector, VXCL(UP:VECTOR, dir)),360).
+}
+
+declare function angle_diff{
+    parameter a1.
+    parameter a2.
+    local res to mod(a2-a1,360).
+    if res < 0{
+        set res to res + 360.
+    }
+    return res.
+}
+
+
 declare function vector_along_geo{
     parameter start. // vector
     parameter dir.   // vector
@@ -20,4 +45,76 @@ declare function vector_along_geo{
 }
 declare function fly2point{
     parameter dst.
+    local lock bc to SHIP:BODY:POSITION.
+    local rel_dst is dst - bc.
+    local lock dst2 to bc + rel_dst.
+    SAS OFF.
+    LOCK STEERING to dst.
+    LOCK THROTTLE to 1.
+//    wait until dst2:MAG < 1000.
+//    unlock STEERING.
+//    unlock THROTTLE.
+//    SAS ON.
+//    KUniverse:PAUSE().
+
+}
+declare function prnt{
+    parameter lbl.
+    parameter val is "".
+    print (lbl + " : " + val + "                 ") at (1,prnt_n).
+    set prnt_n to prnt_n+1.
+}
+declare function wide_turn{
+    parameter dst_azimuth.
+    parameter direction.  // +-1
+    set pitchPID to PIDLOOP(
+            1,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                    0.3,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.01,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                    -10,   // min possible throttle is zero.
+                    15    // max possible throttle is one.
+            ).
+    set pitchPID:SETPOINT to 0.
+
+    set rollPID to PIDLOOP(
+            0.3 ,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                    0.001 ,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.9 ,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                    -15,   // min possible throttle is zero.
+                    15    // max possible throttle is one.
+            ).
+    set rollPID:SETPOINT to 0.
+    local my_steering to SHIP:FACING.
+    SAS OFF.
+    LOCK STEERING to my_steering.
+    LOCK THROTTLE to 1.
+    until 0 {
+        set prnt_n to 5.
+        local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
+        local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
+//        SET PITCH TO 0.
+        LOCAL current_comp to compass(SRFPROGRADE:VECTOR).
+        local adiff to angle_diff(dst_azimuth, current_comp).
+        if abs(adiff) > 15{
+            if adiff < 0{
+                set adiff to -15.
+            } else{
+                set adiff to 15.
+            }
+        }
+        set my_steering to HEADING(current_comp+adiff, pitch).
+        prnt("pitch        ", pitch).
+        prnt("adiff        ", adiff).
+        prnt("current_comp ", current_comp).
+        prnt("SRFPROGRADE  ", compass(SRFPROGRADE:VECTOR)).
+        prnt("comp         ", compass()).
+        if abs(adiff) < 5{
+            print ("DONE.").
+            UNLOCK STEERING.
+            UNLOCK THROTTLE.
+            SAS ON.
+            break.
+        }
+        wait 0.01.
+    }
 }

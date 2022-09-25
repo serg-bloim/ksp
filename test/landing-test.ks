@@ -1,8 +1,8 @@
 CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
-//run "test/strife.ks".
-//print 1/0.
+run "test/fly2point.ks".
+print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
 print "Landing-test".
@@ -25,9 +25,6 @@ declare function vang2{
     return res.
 }
 declare function compass{
-//    parameter dir is FACING:VECTOR.
-//    parameter origin is V(0,0,0).
-//    return mod(360+vang2(NORTH:vector, VXCL(ORIGIN - BODY:POSITION, dir)),360).
     parameter dir is FACING:VECTOR.
     return mod(360+vang2(NORTH:vector, VXCL(UP:VECTOR, dir)),360).
 }
