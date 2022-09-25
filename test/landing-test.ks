@@ -1,8 +1,8 @@
 CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
-run "test/strife.ks".
-print 1/0.
+//run "test/strife.ks".
+//print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
 print "Landing-test".
@@ -13,6 +13,7 @@ local wp2 is  WAYPOINT("Lane-end").
 lock p1 to wp1:POSITION.
 lock p2 to wp2:POSITION.
 local vecd is VECDRAW(p1,p2-p1, green, "dir", 1, true).
+local vecd_norm is VECDRAW(V(0,0,0),V(0,0,0), red, "norm", 1, true).
 
 declare function vang2{
     parameter v1.
@@ -34,14 +35,12 @@ declare function compass{
 declare function angle_for_dist{
     parameter d.
     local adist is abs(d).
-    if adist < 1{
+    if adist < 100{
         return 0.
     } else if adist > 1000{
         set d to d / adist * 1000.
     }
-//    0.0132 + -0.0103x + -3.47E-07x^2 + -3.68E-08x^3
-//    return 3.65E-03 -2.11E-03 * d -7.38E-08*d*d -7.82E-09*d*d*d.
-    return -1.1044486511451808e-08 * d*d*d + 6.574502254576959e-06 * d*d + -0.010533474703402584 * d + 0.0034793071033457855.
+    return 7.387224919772421e-09 * d*d*d + -6.221663913591708e-14 * d*d + 0.007643792974183193 * d + 1.6131242240408006e-08.
 }
 set pitchPID to PIDLOOP(
         1,   // adjust throttle 0.1 per 5m in error from desired altitude.
@@ -71,12 +70,20 @@ set headingDiffPID to PIDLOOP(
         -10,   // min possible throttle is zero.
         10    // max possible throttle is one.
         ).
-
+set rollPID to PIDLOOP(
+        0.3 ,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                0.001 ,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                0.9 ,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                -15,   // min possible throttle is zero.
+                15    // max possible throttle is one.
+        ).
+set rollPID:SETPOINT to 0.
 SAS OFF.
 
 lock my_steering to SHIP:FACING.
 set my_throttling to 1.
 lock my_pitch2 to 0.
+local my_roll is 0.
 set my_heading to compass(SRFPROGRADE:vector).
 RCS ON.
 if RCS{
@@ -101,25 +108,23 @@ set dst_gnd_speed to 500.
 set stage_n to 1.
 WHEN wp1:POSITION:MAG < 20000 THEN{
     set stage_n to 2.
-    SET dst_gnd_speed to 200.
     lock my_pitch2 to pitch.
 }
 WHEN wp1:POSITION:MAG < 10000 THEN{
     set stage_n to 3.
-    SET dst_gnd_speed to 80.
     set velPID:SETPOINT to dst_alt+50.
 }
-WHEN wp1:POSITION:MAG < 2000 THEN{
+WHEN wp1:POSITION:MAG < 3000 THEN{
     set stage_n to 4.
     set velPID:SETPOINT to dst_alt+10.
     GEAR ON.
     BRAKES ON.
     SET dst_gnd_speed to 60.
-}
-WHEN vxcl(UP:VECTOR, wp1:POSITION):MAG < 20 THEN{
-    set stage_n to 5.
-    set velPID:SETPOINT to dst_alt+1.
-    SET THROTTLE to 0.
+    WHEN p1*SHIP:VELOCITY:SURFACE < 20 THEN{
+        set stage_n to 5.
+        set velPID:SETPOINT to dst_alt+1.
+        SET THROTTLE to 0.
+    }
 }
 local vel_target is 0.
 local angle is 0.
@@ -136,7 +141,7 @@ declare function prnt{
     print (lbl + " : " + val + "                 ") at (1,prnt_n).
     set prnt_n to prnt_n+1.
 }
-lock my_steering to HEADING(my_heading, my_pitch2, 0).
+lock my_steering to HEADING(my_heading, my_pitch2, my_roll).
 until 0 {
     set prnt_n to 1.
     local vline is p2-p1.
@@ -144,15 +149,17 @@ until 0 {
     set vecd:vec to vline.
     local n is VCRS(vline,SHIP:BODY:POSITION - p1):NORMALIZED.
     local nup is VCRS(vline,n).
-    local d is -n * p1.
+    local d is n * p1.
+    set vecd_norm:vec to n*d.
     local a is vang2(SHIP:FACING:VECTOR, vline).
     local comp_f is compass().
     local comp is compass(SRFPROGRADE:vector).
     local comp_line is compass(vline).
-    local afd to angle_for_dist(d).
+    local afd to -angle_for_dist(d).
     if RCS{
         set vel_target to velPID:UPDATE(TIME:SECONDS, SHIP:ALTITUDE).
         set pitch to pitchPID:UPDATE(TIME:SECONDS, SHIP:VERTICALSPEED).
+        set my_roll to rollPID:UPDATE(TIME:SECONDS, d).
         set my_throttling to spdPID:UPDATE(TIME:SECONDS, SHIP:GROUNDSPEED).
         set my_heading_diff to headingDiffPID:UPDATE(TIME:SECONDS, comp).
         set my_heading_diff to 0.
@@ -185,7 +192,7 @@ until 0 {
             +"," +round(pitch,1):TOSTRING:PADLEFT(7)
             +"," +round(vel_target-SHIP:VERTICALSPEED,2):TOSTRING:PADLEFT(7)
             to logfile.
-    wait 0.1.
+    wait 0.01.
 }
 //show_vect(n:NORMALIZED*10).
 LOCK WHEELTHROTTLE TO 0.
