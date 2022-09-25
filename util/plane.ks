@@ -49,9 +49,12 @@ declare function fly2point{
     local rel_dst is dst - bc.
     local lock dst2 to bc + rel_dst.
     SAS OFF.
-    LOCK STEERING to dst.
     LOCK THROTTLE to 1.
-//    wait until dst2:MAG < 1000.
+
+    until dst2:MAG > 1000{
+        LOCK STEERING to dst2.
+        wait 0.1.
+    }
 //    unlock STEERING.
 //    unlock THROTTLE.
 //    SAS ON.
@@ -69,7 +72,7 @@ declare function wide_turn{
     parameter direction.  // +-1
     set pitchPID to PIDLOOP(
             1,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                    0.3,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.01,  // adjust throttle 0.1 per second spent at 1m error in altitude.
                     0.01,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
                     -10,   // min possible throttle is zero.
                     15    // max possible throttle is one.
@@ -93,7 +96,7 @@ declare function wide_turn{
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
         local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
 //        SET PITCH TO 0.
-        LOCAL current_comp to compass(SRFPROGRADE:VECTOR).
+        LOCAL current_comp to compass().
         local adiff to angle_diff(dst_azimuth, current_comp).
         if abs(adiff) > 15{
             if adiff < 0{
@@ -102,19 +105,75 @@ declare function wide_turn{
                 set adiff to 15.
             }
         }
-        set my_steering to HEADING(current_comp+adiff, pitch).
+        set my_steering to HEADING(current_comp+adiff, pitch, direction * 45).
         prnt("pitch        ", pitch).
         prnt("adiff        ", adiff).
         prnt("current_comp ", current_comp).
         prnt("SRFPROGRADE  ", compass(SRFPROGRADE:VECTOR)).
         prnt("comp         ", compass()).
-        if abs(adiff) < 5{
-            print ("DONE.").
-            UNLOCK STEERING.
-            UNLOCK THROTTLE.
-            SAS ON.
+        if abs(adiff) < 10{
             break.
         }
         wait 0.01.
     }
+    LOCK STEERING to HEADING(dst_azimuth, 0, 0).
+    local lock roll_angle to 90 - vectorangle(ship:up:forevector, ship:facing:STARVECTOR).
+    print ("Fine tuning").
+    local a is 10.
+    UNTIL a < 1 and roll_angle < 1{
+        wait 0.01.
+        set a to ABS(dst_azimuth-compass()).
+        print ("azimuth          : " + a) at (3,10).
+        print ("roll_angle       : " + roll_angle) at (3,11).
+    }
+    wait 3.
+    UNLOCK STEERING.
+    UNLOCK THROTTLE.
+    SAS ON.
+    print ("DONE.").
+}
+
+declare function prepare_landing{
+    parameter wp1.
+    parameter wp2.
+    lock p1 to wp1:POSITION.
+    lock p2 to wp2:POSITION.
+    lock soi to SHIP:BODY:POSITION.
+    local vd1 is VECDRAW(p1,(p2-p1), green, "", 1, true).
+    lock c to vector_along_geo(p1, p1-p2, 30e3, 1000).
+    local vd2 is VECDRAW(p1,(c-p1), blue, "", 1, true).
+    lock norm to VCRS(p1-soi,p2-soi).
+    lock c1 to vector_along_geo(c, norm, 10e3).
+    lock c2 to vector_along_geo(c, -norm, 10e3).
+    lock c_goal to c1.
+    local dir to 1.
+    if c2:MAG < c1:MAG{
+        lock c_goal to c2.
+        set dir to -1.
+    }
+    local vd3 is VECDRAW(c,(c_goal-c), red, "c1", 1, true).
+
+    ON c{
+        set vd1:START to p1.
+        set vd1:VEC to p2-p1.
+
+        set vd2:START to p1.
+        set vd2:VEC to c-p1.
+
+        set vd3:START to c.
+        set vd3:VEC to c_goal-c.
+
+        print(norm) at(10,10).
+        PRESERVE.
+    }
+    print("Dir to C").
+    wide_turn(compass(c_goal), dir).
+    print("Go to C").
+    fly2point(c_goal).
+    wait until vxcl(UP:VECTOR, c_goal):MAG < 1000.
+    unlock STEERING.
+    unlock THROTTLE.
+    print("wide turn").
+    wide_turn(compass(p2-p1), dir).
+    print("Done").
 }

@@ -59,8 +59,8 @@ set rollPID:SETPOINT to 0.
 set velPID:SETPOINT to 1500.
 SAS OFF.
 
-LOCK my_steering TO HEADING(my_facing_compass, my_pitch, my_roll).
-LOCK my_throttling TO 1.
+local LOCK my_steering TO HEADING(my_facing_compass, my_pitch, my_roll).
+local LOCK my_throttling TO 1.
 RCS ON.
 if RCS{
     lock steering to my_steering.

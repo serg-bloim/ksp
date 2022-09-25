@@ -7,12 +7,12 @@ print "Fly2point test ".
 
 wait until RCS.
 
-print ("Wide turn to 90").
-wide_turn(90, 1).
-wait 5.
-print ("Wide turn to 180").
-wide_turn(180, 1).
-print ("In direction of 180").
+//print ("Wide turn to 90").
+//wide_turn(90, 1).
+//wait 10.
+//print ("Wide turn to 180").
+//wide_turn(180, 1).
+//print ("In direction of 180").
 
 local wp1 is  WAYPOINT("Line-start").
 local wp2 is  WAYPOINT("Lane-end").

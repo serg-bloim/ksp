@@ -1,7 +1,8 @@
 CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
-run "test/fly2point.ks".
+RUNONCEPATH("util/plane.ks").
+run "/test/fly2point.ks".
 print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
@@ -12,6 +13,11 @@ local wp1 is  WAYPOINT("Line-start").
 local wp2 is  WAYPOINT("Lane-end").
 lock p1 to wp1:POSITION.
 lock p2 to wp2:POSITION.
+
+print("Preparing for landing.").
+prepare_landing(wp1, wp2).
+print("Landing").
+
 local vecd is VECDRAW(p1,p2-p1, green, "dir", 1, true).
 local vecd_norm is VECDRAW(V(0,0,0),V(0,0,0), red, "norm", 1, true).
 
@@ -77,7 +83,7 @@ set rollPID to PIDLOOP(
 set rollPID:SETPOINT to 0.
 SAS OFF.
 
-lock my_steering to SHIP:FACING.
+local lock my_steering to SHIP:FACING.
 set my_throttling to 1.
 lock my_pitch2 to 0.
 local my_roll is 0.
@@ -138,7 +144,7 @@ declare function prnt{
     print (lbl + " : " + val + "                 ") at (1,prnt_n).
     set prnt_n to prnt_n+1.
 }
-lock my_steering to HEADING(my_heading, my_pitch2, my_roll).
+local lock my_steering to HEADING(my_heading, my_pitch2, my_roll).
 until 0 {
     set prnt_n to 1.
     local vline is p2-p1.
