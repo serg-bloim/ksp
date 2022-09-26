@@ -1,3 +1,15 @@
+declare function cap{
+    parameter val.
+    parameter min is 0.
+    parameter max is 0.
+    if val < min{
+        return min.
+    }
+    if val > max{
+        return max.
+    }
+    return val.
+}
 declare function countdown{
     declare parameter cnt is 10.
     declare parameter delay is 1.
