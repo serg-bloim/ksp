@@ -8,7 +8,7 @@ print "Fly2point test ".
 SAS OFF.
 
 print ("Wide turn to 90").
-wide_turn(90, 1).
+wide_turn(90, -1).
 wait 10.
 print ("Wide turn to 180").
 wide_turn(180, 1).

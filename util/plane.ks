@@ -139,12 +139,12 @@ declare function wide_turn{
             // if roll and dir are different directions, add penalty
             set wrong_dir_pitch_penalty to 90.
             if actual_roll * direction < -90{
-                set wrong_dir_pitch_penalty to -90.
+                set wrong_dir_pitch_penalty to direction*90.
             }
         }
         local roll to 0.
         if RCS{
-            set roll to -rollPID:UPDATE(TIME:SECONDS, actual_pitch+wrong_dir_pitch_penalty).
+            set roll to -direction * rollPID:UPDATE(TIME:SECONDS, actual_pitch+wrong_dir_pitch_penalty).
         }
         set ship:control:roll to roll.
         prnt("start_azimuth ", start_azimuth).
