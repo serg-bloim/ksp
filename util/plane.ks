@@ -99,21 +99,19 @@ declare function wide_turn{
             ).
 
     set pitchPID:SETPOINT to 0.
-    local max_roll to 0.1.
-    local max_out to 0.1.
     set rollPID to PIDLOOP(
-            0.01 * max_roll,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                    0.0001  * max_roll,  // adjust throttle 0.1 per second spent at 1m error in altitude.
-                    0.05  * max_roll,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
-                    -1 * max_out,   // min possible throttle is zero.
-                    1 * max_out    // max possible throttle is one.
+            0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                    0.0001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.01,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                    -0.1,   // min possible throttle is zero.
+                    0.1    // max possible throttle is one.
             ).
     // set rollPID:KP to 0.
     // set rollPID:KI to 0.
     // set rollPID:KD to 0.
     set rollPID:SETPOINT to 0.
     SAS OFF.
-    local max_pitch to 15.
+    local max_pitch to 5.
     when NOT RCS THEN {
         SET ship:control:roll to 0.
         SET ship:control:yaw to 0.
@@ -124,16 +122,16 @@ declare function wide_turn{
         set prnt_n to 5.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
         local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
-    //        SET PITCH TO 0.
-        LOCAL current_comp to compass().
+        set current_comp to compass().
         local adiff to dst_azimuth-start_azimuth.
 
+        set actual_roll to horizon_roll().
+        local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
+        local dir_modifier to cap(1-abs(direction*(90+actual_pitch)-actual_roll)/90,0,1).
         set pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
         if RCS{
-            set  ship:control:pitch to pitch.
+            set  ship:control:pitch to pitch*dir_modifier.
         }
-        local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
-        local actual_roll to horizon_roll().
         local wrong_dir_pitch_penalty to 0.
         if actual_roll * direction < 0{
             // if roll and dir are different directions, add penalty
@@ -151,6 +149,7 @@ declare function wide_turn{
         prnt("dst_azimuth  ", dst_azimuth).
         prnt("adiff        ", adiff).
         prnt("pitch        ", pitch).
+        prnt("dir_modifier ", dir_modifier).
         prnt("actual_pitch ", actual_pitch).
         prnt("actual_roll  ", actual_roll).
         prnt("wdpp         ", wrong_dir_pitch_penalty).

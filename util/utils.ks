@@ -48,3 +48,15 @@ declare function current_thrust{
     }
     return thr.
 }
+declare function wait_cond{
+    parameter stable_time, cond.
+    local stable_since to 2147483647.
+        until time:seconds - stable_since > stable_time{
+            if cond(){
+                set stable_since to min(time:seconds,stable_since).
+            }else{
+                set stable_since to 2147483647.
+            }
+            wait 1.
+    }
+}
