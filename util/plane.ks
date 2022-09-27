@@ -54,7 +54,7 @@ declare function fly2point{
     SAS OFF.
     LOCK THROTTLE to 1.
 
-    until dst2:MAG > 1000{
+    until vxcl(UP:VECTOR, dst2):MAG > 1000{
         LOCK STEERING to dst2.
         wait 0.1.
     }
@@ -90,7 +90,7 @@ declare function wide_turn{
         // If it needs to cross 0° or 360°
         set start_azimuth to start_azimuth - direction * 360.
     }
-    set pitchPID to PIDLOOP(
+    local pitchPID to PIDLOOP(
             0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
                     0.001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
                     0.001,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
@@ -99,10 +99,10 @@ declare function wide_turn{
             ).
 
     set pitchPID:SETPOINT to 0.
-    set rollPID to PIDLOOP(
+    local rollPID to PIDLOOP(
             0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
                     0.0001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
-                    0.01,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                    0.03,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
                     -0.1,   // min possible throttle is zero.
                     0.1    // max possible throttle is one.
             ).
@@ -112,23 +112,17 @@ declare function wide_turn{
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 5.
-    when NOT RCS THEN {
-        SET ship:control:roll to 0.
-        SET ship:control:yaw to 0.
-        SET ship:control:pitch to 0.
-        SAS ON.
-    }
     until 0 {
         set prnt_n to 5.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
         local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
-        set current_comp to compass().
+        local  current_comp to compass().
         local adiff to compass()-dst_azimuth.
 
-        set actual_roll to horizon_roll().
+        local  actual_roll to horizon_roll().
         local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
         local dir_modifier to cap(1-abs(direction*(90+actual_pitch)-actual_roll)/90,0,1).
-        set pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
+        local  pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
         if RCS{
             set  ship:control:pitch to pitch*dir_modifier.
         }
@@ -187,24 +181,23 @@ declare function wide_turn{
 declare function prepare_landing{
     parameter wp1.
     parameter wp2.
-    lock p1 to wp1:POSITION.
-    lock p2 to wp2:POSITION.
-    lock soi to SHIP:BODY:POSITION.
+    local lock p1 to wp1:POSITION.
+    local lock p2 to wp2:POSITION.
+    local lock soi to SHIP:BODY:POSITION.
     local vd1 is VECDRAW(p1,(p2-p1), green, "", 1, true).
-    lock c to vector_along_geo(p1, p1-p2, 30e3, 1000).
+    local lock c to vector_along_geo(p1, p1-p2, 30e3, 1000).
     local vd2 is VECDRAW(p1,(c-p1), blue, "", 1, true).
-    lock norm to VCRS(p1-soi,p2-soi).
-    lock c1 to vector_along_geo(c, norm, 10e3).
-    lock c2 to vector_along_geo(c, -norm, 10e3).
-    lock c_goal to c1.
+    local lock norm to VCRS(p1-soi,p2-soi).
+    local lock c1 to vector_along_geo(c, norm, 10e3).
+    local lock c2 to vector_along_geo(c, -norm, 10e3).
+    local lock c_goal to c1.
     local dir to 1.
     if c2:MAG < c1:MAG{
-        lock c_goal to c2.
+        local lock c_goal to c2.
         set dir to -1.
     }
     local vd3 is VECDRAW(c,(c_goal-c), red, "c1", 1, true).
-
-    ON c{
+    declare function update{
         set vd1:START to p1.
         set vd1:VEC to p2-p1.
 
@@ -215,16 +208,23 @@ declare function prepare_landing{
         set vd3:VEC to c_goal-c.
 
         print(norm) at(10,10).
-        PRESERVE.
     }
-    print("Dir to C").
+    // ON c{
+
+    // }
+    CLEARSCREEN.
+    print("Dir to C "+ compass(c_goal)).
     wide_turn(compass(c_goal), dir).
+    update().
     print("Go to C").
     fly2point(c_goal).
     wait until vxcl(UP:VECTOR, c_goal):MAG < 1000.
+    update().
     unlock STEERING.
     unlock THROTTLE.
+    CLEARSCREEN.
     print("wide turn").
     wide_turn(compass(p2-p1), dir).
+    update().
     print("Done").
 }

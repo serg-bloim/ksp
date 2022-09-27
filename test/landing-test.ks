@@ -2,8 +2,8 @@ CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 RUNONCEPATH("util/plane.ks").
-run "/test/fly2point.ks".
-print 1/0.
+// run "/test/fly2point.ks".
+// print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
 print "Landing-test".
@@ -11,8 +11,8 @@ local body_c is SHIP:BODY:POSITION.
 
 local wp1 is  WAYPOINT("Line-start").
 local wp2 is  WAYPOINT("Lane-end").
-lock p1 to wp1:POSITION.
-lock p2 to wp2:POSITION.
+local lock p1 to wp1:POSITION.
+local lock p2 to wp2:POSITION.
 
 print("Preparing for landing.").
 prepare_landing(wp1, wp2).
