@@ -5,7 +5,6 @@ CLEARSCREEN.
 CLEARVECDRAWS().
 print "Fly2point test ".
 
-wait until RCS.
 SAS OFF.
 
 print ("Wide turn to 90").
@@ -15,6 +14,7 @@ print ("Wide turn to 180").
 wide_turn(180, 1).
 print ("In direction of 180").
 
+wait until RCS.
 local wp1 is  WAYPOINT("Line-start").
 local wp2 is  WAYPOINT("Lane-end").
 lock p1 to wp1:POSITION.

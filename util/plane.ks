@@ -99,7 +99,7 @@ declare function wide_turn{
             ).
 
     set pitchPID:SETPOINT to 0.
-    local max_roll to 1.
+    local max_roll to 0.1.
     local max_out to 0.1.
     set rollPID to PIDLOOP(
             0.01 * max_roll,   // adjust throttle 0.1 per 5m in error from desired altitude.
@@ -114,6 +114,12 @@ declare function wide_turn{
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 15.
+    when NOT RCS THEN {
+        SET ship:control:roll to 0.
+        SET ship:control:yaw to 0.
+        SET ship:control:pitch to 0.
+        SAS ON.
+    }
     until 0 {
         set prnt_n to 5.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
@@ -122,17 +128,27 @@ declare function wide_turn{
         LOCAL current_comp to compass().
         local adiff to dst_azimuth-start_azimuth.
 
-        set pitch to cap(abs(adiff), 0, max_pitch)/max_pitch/2.
-        set  ship:control:pitch to pitch.
+        set pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
+        if RCS{
+            set  ship:control:pitch to pitch.
+        }
         local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
         local actual_roll to horizon_roll().
         local wrong_dir_pitch_penalty to 0.
-        if actual_roll * direction > 0{
+        if actual_roll * direction < 0{
             // if roll and dir are different directions, add penalty
-            set wrong_dir_pitch_penalty to 2*max_pitch-actual_pitch.
+            set wrong_dir_pitch_penalty to 90.
+            if actual_roll * direction < -90{
+                set wrong_dir_pitch_penalty to -90.
+            }
         }
-        local roll to rollPID:UPDATE(TIME:SECONDS, actual_pitch+wrong_dir_pitch_penalty).
+        local roll to 0.
+        if RCS{
+            set roll to -rollPID:UPDATE(TIME:SECONDS, actual_pitch+wrong_dir_pitch_penalty).
+        }
         set ship:control:roll to roll.
+        prnt("start_azimuth ", start_azimuth).
+        prnt("dst_azimuth  ", dst_azimuth).
         prnt("adiff        ", adiff).
         prnt("pitch        ", pitch).
         prnt("actual_pitch ", actual_pitch).
