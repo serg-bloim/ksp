@@ -123,7 +123,7 @@ declare function wide_turn{
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
         local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
         set current_comp to compass().
-        local adiff to dst_azimuth-start_azimuth.
+        local adiff to compass()-dst_azimuth.
 
         set actual_roll to horizon_roll().
         local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
@@ -165,6 +165,11 @@ declare function wide_turn{
     // LOCK STEERING to HEADING(dst_azimuth, 0, 0).
     local lock roll_angle to 90 - vectorangle(ship:up:forevector, ship:facing:STARVECTOR).
     print ("Fine tuning").
+            SET ship:control:roll to 0.
+        SET ship:control:yaw to 0.
+        SET ship:control:pitch to 0.
+        
+    LOCK STEERING to HEADING(dst_azimuth, 0, 0).
     local a is 10.
     UNTIL a < 1 and roll_angle < 1{
         wait 0.01.
