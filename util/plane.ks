@@ -99,17 +99,18 @@ declare function wide_turn{
             ).
 
     set pitchPID:SETPOINT to 0.
-    local max_roll to 0.1.
+    local max_roll to 1.
+    local max_out to 0.1.
     set rollPID to PIDLOOP(
             0.01 * max_roll,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                    0.001  * max_roll,  // adjust throttle 0.1 per second spent at 1m error in altitude.
-                    0.001  * max_roll,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
-                    -1 * max_roll,   // min possible throttle is zero.
-                    1 * max_roll    // max possible throttle is one.
+                    0.0001  * max_roll,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.05  * max_roll,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+                    -1 * max_out,   // min possible throttle is zero.
+                    1 * max_out    // max possible throttle is one.
             ).
     // set rollPID:KP to 0.
-    set rollPID:KI to 0.
-    set rollPID:KD to 0.
+    // set rollPID:KI to 0.
+    // set rollPID:KD to 0.
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 15.
