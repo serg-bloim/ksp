@@ -2,7 +2,8 @@ CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 RUNONCEPATH("util/plane.ks").
-// run "/test/fly2point.ks".
+// run "/test/strife.ks".
+run "/test/fly2point.ks".
 // print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
@@ -56,7 +57,7 @@ set velPID to PIDLOOP(
         0.1,   // adjust throttle 0.1 per 5m in error from desired altitude.
                 0,  // adjust throttle 0.1 per second spent at 1m error in altitude.
                 0,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
-                -30,   // min possible throttle is zero.
+                -50,   // min possible throttle is zero.
                 50    // max possible throttle is one.
         ).
 set spdPID to PIDLOOP(
@@ -158,7 +159,7 @@ until 0 {
     local comp_f is compass().
     local comp is compass(SRFPROGRADE:vector).
     local comp_line is compass(vline).
-    local afd to -angle_for_dist(d).
+    local afd to angle_for_dist(d).
     if RCS{
         set vel_target to velPID:UPDATE(TIME:SECONDS, SHIP:ALTITUDE).
         set pitch to pitchPID:UPDATE(TIME:SECONDS, SHIP:VERTICALSPEED).

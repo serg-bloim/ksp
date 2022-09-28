@@ -54,8 +54,10 @@ declare function fly2point{
     SAS OFF.
     LOCK THROTTLE to 1.
 
-    until vxcl(UP:VECTOR, dst2):MAG > 1000{
+    until vxcl(UP:VECTOR, dst2):MAG < 1000{
         LOCK STEERING to dst2.
+        print("Compass: " + compass()) at (1,2).
+        print("dist: " + vxcl(UP:VECTOR, dst2):MAG) at (1,2).
         wait 0.1.
     }
 //    unlock STEERING.
@@ -112,6 +114,7 @@ declare function wide_turn{
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 5.
+    print ("wide turn : " + dst_azimuth).
     until 0 {
         set prnt_n to 5.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
@@ -190,24 +193,30 @@ declare function prepare_landing{
     local lock norm to VCRS(p1-soi,p2-soi).
     local lock c1 to vector_along_geo(c, norm, 10e3).
     local lock c2 to vector_along_geo(c, -norm, 10e3).
-    local lock c_goal to c1.
     local dir to 1.
     if c2:MAG < c1:MAG{
-        local lock c_goal to c2.
         set dir to -1.
     }
+    local lock c_goal to vector_along_geo(c, dir * norm, 1e3).
+
     local vd3 is VECDRAW(c,(c_goal-c), red, "c1", 1, true).
+    set vd1:STARTUPDATER to {return p1.}.
+    set vd1:VECUPDATER to {return p2-p1.}.
+    set vd2:STARTUPDATER to {return p1.}.
+    set vd2:VECUPDATER to {return c-p1.}.
+    set vd3:STARTUPDATER to {return c.}.
+    set vd3:VECUPDATER to {return c_goal-c.}.
     declare function update{
-        set vd1:START to p1.
-        set vd1:VEC to p2-p1.
+        // set vd1:START to p1.
+        // set vd1:VEC to p2-p1.
 
-        set vd2:START to p1.
-        set vd2:VEC to c-p1.
+        // set vd2:START to p1.
+        // set vd2:VEC to c-p1.
 
-        set vd3:START to c.
-        set vd3:VEC to c_goal-c.
+        // set vd3:START to c.
+        // set vd3:VEC to c_goal-c.
 
-        print(norm) at(10,10).
+        // print(norm) at(10,10).
     }
     // ON c{
 
@@ -216,9 +225,9 @@ declare function prepare_landing{
     print("Dir to C "+ compass(c_goal)).
     wide_turn(compass(c_goal), dir).
     update().
+    CLEARSCREEN.
     print("Go to C").
     fly2point(c_goal).
-    wait until vxcl(UP:VECTOR, c_goal):MAG < 1000.
     update().
     unlock STEERING.
     unlock THROTTLE.
@@ -227,4 +236,7 @@ declare function prepare_landing{
     wide_turn(compass(p2-p1), dir).
     update().
     print("Done").
+    unset vd1.
+    unset vd2.
+    unset vd3.
 }
