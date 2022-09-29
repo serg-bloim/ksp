@@ -60,3 +60,17 @@ declare function wait_cond{
             wait 1.
     }
 }
+declare function SasOffBackup{
+    if SAS {
+        SAS OFF.
+        return {SAS ON.}.
+    }
+    return {}.
+}
+
+declare function prnt{
+    parameter lbl.
+    parameter val is "".
+    print (lbl + " : " + val + "                 ") at (1,prnt_n).
+    set prnt_n to prnt_n+1.
+}

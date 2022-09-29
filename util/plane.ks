@@ -10,10 +10,23 @@ declare function vang2{
     return res.
 }
 declare function compass{
-    parameter dir is FACING:VECTOR.
+    parameter dir is FACING.
+    if dir:ISTYPE("Direction"){
+        set dir to dir:forevector.
+    }
     return mod(360+vang2(NORTH:vector, VXCL(UP:VECTOR, dir)),360).
 }
-
+declare function angle180{
+    parameter from,to.
+    local diff to mod(to - from,360).
+    if diff > 180{
+        return diff-360.
+    } else if diff < -180{
+        return diff + 360.
+    }else{
+        return diff.
+    }
+}
 declare function angle_diff{
     parameter a1.
     parameter a2.
@@ -46,32 +59,6 @@ declare function vector_along_geo{
     set res:MAG to alt.
     return bc + res.
 }
-declare function fly2point{
-    parameter dst.
-    local lock bc to SHIP:BODY:POSITION.
-    local rel_dst is dst - bc.
-    local lock dst2 to bc + rel_dst.
-    SAS OFF.
-    LOCK THROTTLE to 1.
-
-    until vxcl(UP:VECTOR, dst2):MAG < 1000{
-        LOCK STEERING to dst2.
-        print("Compass: " + compass()) at (1,2).
-        print("dist: " + vxcl(UP:VECTOR, dst2):MAG) at (1,2).
-        wait 0.1.
-    }
-//    unlock STEERING.
-//    unlock THROTTLE.
-//    SAS ON.
-//    KUniverse:PAUSE().
-
-}
-declare function prnt{
-    parameter lbl.
-    parameter val is "".
-    print (lbl + " : " + val + "                 ") at (1,prnt_n).
-    set prnt_n to prnt_n+1.
-}
 declare function horizon_roll{
     parameter dir to ship:facing.
     local hrzn to UP.
@@ -86,8 +73,19 @@ declare function horizon_roll{
 }
 declare function wide_turn{
     parameter dst_azimuth.
-    parameter direction.  // +-1
+    parameter direction is 0.  // +-1
+    parameter stabilize4 is 3.  // +-1
     local start_azimuth to compass().
+    log "Start wide_turn()" to "/log/flight-test.log".
+
+    log "   dst_azimuth   = " + dst_azimuth to "/log/flight-test.log".
+    log "   start_azimuth = " + start_azimuth to "/log/flight-test.log".
+    log "   direction     = " + direction to "/log/flight-test.log".
+
+    if direction = 0{
+        set direction to choose 1 if dst_azimuth - start_azimuth > 0 else -1.
+        log "   set direction to " + direction to "/log/flight-test.log".
+    }
     if (dst_azimuth - start_azimuth)*direction < 0{
         // If it needs to cross 0° or 360°
         set start_azimuth to start_azimuth - direction * 360.
@@ -154,7 +152,7 @@ declare function wide_turn{
         prnt("current_comp ", current_comp).
         prnt("SRFPROGRADE  ", compass(SRFPROGRADE:VECTOR)).
         prnt("comp         ", compass()).
-        if abs(adiff) < 10{
+        if abs(adiff) < 1{
             break.
         }
         wait 0.01.
@@ -167,20 +165,32 @@ declare function wide_turn{
         SET ship:control:pitch to 0.
         
     LOCK STEERING to HEADING(dst_azimuth, 0, 0).
-    local a is 10.
-    UNTIL a < 1 and roll_angle < 1{
-        wait 0.01.
-        set a to ABS(dst_azimuth-compass()).
-        print ("azimuth          : " + a) at (3,10).
-        print ("roll_angle       : " + roll_angle) at (3,11).
-    }
-    wait 3.
+    wait_cond(stabilize4, {return ABS(dst_azimuth-compass()) < 1 and abs(roll_angle) < 1.}).
     UNLOCK STEERING.
     UNLOCK THROTTLE.
     SAS ON.
     print ("DONE.").
 }
 
+declare function fly2point{
+    parameter dst.
+    local lock bc to SHIP:BODY:POSITION.
+    local rel_dst is dst - bc.
+    local lock dst2 to bc + rel_dst.
+    local sasrecovery to SasOffBackup().
+    LOCK THROTTLE to 1.
+
+    until vxcl(UP:VECTOR, dst2):MAG < 1000{
+        LOCK STEERING to dst2.
+        print("Compass: " + compass()) at (1,2).
+        print("dist: " + vxcl(UP:VECTOR, dst2):MAG) at (1,2).
+        wait 0.1.
+    }
+   unlock STEERING.
+   unlock THROTTLE.
+   sasrecovery().
+
+}
 declare function prepare_landing{
     parameter wp1.
     parameter wp2.
