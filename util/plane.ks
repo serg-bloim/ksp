@@ -175,16 +175,23 @@ declare function precise_turn{
         -0.2,   
         0.2  
         ).
+    local adiff to 999999.
+    local actual_pitch to 0.
+    local end_cond to create_condition(3, {return abs(adiff) < 1 and abs(actual_pitch - dst_pitch) < 1.}).
+    local sasRevert to SasOffBackup().
     until 0 {
         set prnt_n to 10.
         local actual_comp to compass().
-        local adiff to cap(dst_azimuth - actual_comp, -10, 10).
+        set adiff to cap(dst_azimuth - actual_comp, -10, 10).
         local actual_roll to horizon_roll().
-        local desired_roll to cap(-0.015196457909201211 * adiff*adiff*adiff + -2.1807000649687325e-12 * adiff*adiff + 11.567082346531924 * adiff + -2.2155610679419624e-12, -80, 80).
-        local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
+        local desired_roll to cap(-0.015196457909201211 * adiff*adiff*adiff + -2.1807000649687325e-12 * adiff*adiff + 11.567082346531924 * adiff + -2.2155610679419624e-12, -90, 90).
+        set actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
         set rollPID:setpoint to desired_roll.
         local roll to rollPID:update(time:seconds, actual_roll).
         local pitch to pitchPID:update(time:seconds, actual_pitch).
+        if end_cond(){
+            break.
+        }
         prnt("dst_azimuth  ", dst_azimuth).
         prnt("actual_comp  ", actual_comp).
         prnt("adiff        ", adiff).
@@ -198,6 +205,7 @@ declare function precise_turn{
         set ship:control:pitch to pitch.
         wait 0.01.
     }
+    sasRevert().
 }
 
 declare function fly2point{

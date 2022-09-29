@@ -48,16 +48,23 @@ declare function current_thrust{
     }
     return thr.
 }
-declare function wait_cond{
+declare function create_condition{
     parameter stable_time, cond.
     local stable_since to 2147483647.
-        until time:seconds - stable_since > stable_time{
-            if cond(){
-                set stable_since to min(time:seconds,stable_since).
-            }else{
-                set stable_since to 2147483647.
-            }
-            wait 1.
+    return {
+        if cond(){
+            set stable_since to min(time:seconds,stable_since).
+        }else{
+            set stable_since to 2147483647.
+        }
+        return time:seconds - stable_since > stable_time.
+    }.
+}
+declare function wait_cond{
+    parameter stable_time, predicate.
+    local cond to create_condition(stable_time, predicate).
+    until cond(){
+        wait 1.
     }
 }
 declare function SasOffBackup{
