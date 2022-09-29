@@ -106,9 +106,6 @@ declare function wide_turn{
                     -0.1,   // min possible throttle is zero.
                     0.1    // max possible throttle is one.
             ).
-    // set rollPID:KP to 0.
-    // set rollPID:KI to 0.
-    // set rollPID:KD to 0.
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 5.
@@ -157,19 +154,50 @@ declare function wide_turn{
         }
         wait 0.01.
     }
-    // LOCK STEERING to HEADING(dst_azimuth, 0, 0).
-    local lock roll_angle to 90 - vectorangle(ship:up:forevector, ship:facing:STARVECTOR).
-    print ("Fine tuning").
-            SET ship:control:roll to 0.
-        SET ship:control:yaw to 0.
-        SET ship:control:pitch to 0.
-        
-    LOCK STEERING to HEADING(dst_azimuth, 0, 0).
-    wait_cond(stabilize4, {return ABS(dst_azimuth-compass()) < 1 and abs(roll_angle) < 1.}).
-    UNLOCK STEERING.
-    UNLOCK THROTTLE.
-    SAS ON.
-    print ("DONE.").
+}
+
+declare function precise_turn{
+    parameter dst_azimuth.
+    parameter dst_pitch is 0.
+    local pitchPID to PIDLOOP(
+        0.01, 
+        0.01, 
+        0.000000000000000001, 
+        -1,    
+        1      
+        ).
+
+    set pitchPID:SETPOINT to dst_pitch.
+    local rollPID to PIDLOOP(
+        0.001,  
+        0.0001, 
+        0.0001,   
+        -0.2,   
+        0.2  
+        ).
+    until 0 {
+        set prnt_n to 10.
+        local actual_comp to compass().
+        local adiff to cap(dst_azimuth - actual_comp, -10, 10).
+        local actual_roll to horizon_roll().
+        local desired_roll to cap(-0.015196457909201211 * adiff*adiff*adiff + -2.1807000649687325e-12 * adiff*adiff + 11.567082346531924 * adiff + -2.2155610679419624e-12, -80, 80).
+        local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
+        set rollPID:setpoint to desired_roll.
+        local roll to rollPID:update(time:seconds, actual_roll).
+        local pitch to pitchPID:update(time:seconds, actual_pitch).
+        prnt("dst_azimuth  ", dst_azimuth).
+        prnt("actual_comp  ", actual_comp).
+        prnt("adiff        ", adiff).
+        prnt("actual_pitch ", actual_pitch).
+        prnt("dst_pitch ", dst_pitch).
+        prnt("actual_roll  ", actual_roll).
+        prnt("desired_roll  ", desired_roll).
+        prnt("roll         ", roll).
+        prnt("pitch        ", pitch).
+        set ship:control:roll to roll.
+        set ship:control:pitch to pitch.
+        wait 0.01.
+    }
 }
 
 declare function fly2point{

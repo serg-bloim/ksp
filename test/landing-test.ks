@@ -1,9 +1,9 @@
-CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
+// CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 RUNONCEPATH("util/plane.ks").
 // run "/test/strife.ks".
-run "/test/wide_turn_test.ks".
+run "/test/precise_turn_test.ks".
 // print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
@@ -138,13 +138,7 @@ DELETEPATH(logfile).
 log "   time,    alt, vspeed, hspeed,vtarget,  pitch, vsp_err" to logfile.
 SET launchTime TO TIME:SECONDS.
 LOCK missionClock TO (TIME:SECONDS - launchTime).
-set prnt_n to 1.
-declare function prnt{
-    parameter lbl.
-    parameter val is "".
-    print (lbl + " : " + val + "                 ") at (1,prnt_n).
-    set prnt_n to prnt_n+1.
-}
+
 local lock my_steering to HEADING(my_heading, my_pitch2, my_roll).
 until 0 {
     set prnt_n to 1.
