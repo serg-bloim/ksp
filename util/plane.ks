@@ -167,28 +167,33 @@ declare function precise_turn{
         1      
         ).
 
-    set pitchPID:SETPOINT to dst_pitch.
+    set pitchPID:SETPOINT to 0.
     local rollPID to PIDLOOP(
         0.001,  
         0.0001, 
-        0.0001,   
+        0.001,   
         -0.2,   
         0.2  
         ).
     local adiff to 999999.
     local actual_pitch to 0.
+    local lock comperr to adiff.
+    local lock pitcherr to actual_pitch - dst_pitch.
     local end_cond to create_condition(3, {return abs(adiff) < 1 and abs(actual_pitch - dst_pitch) < 1.}).
     local sasRevert to SasOffBackup().
     until 0 {
         set prnt_n to 10.
         local actual_comp to compass().
         set adiff to cap(dst_azimuth - actual_comp, -10, 10).
+        local angle_dist to sqrt(adiff^2 + (actual_pitch - dst_pitch)^2).
         local actual_roll to horizon_roll().
         local desired_roll to cap(-0.015196457909201211 * adiff*adiff*adiff + -2.1807000649687325e-12 * adiff*adiff + 11.567082346531924 * adiff + -2.2155610679419624e-12, -90, 90).
         set actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
         set rollPID:setpoint to desired_roll.
         local roll to rollPID:update(time:seconds, actual_roll).
-        local pitch to pitchPID:update(time:seconds, actual_pitch).
+        local roll_diff to abs((90 - actual_roll) - (arcTan2(dst_pitch-actual_pitch, dst_azimuth-actual_comp))).
+        local roll_modifier to cap((90 - roll_diff)/90, -1, 1).
+        local pitch to pitchPID:update(time:seconds, -angle_dist*roll_modifier).
         if end_cond(){
             break.
         }
@@ -196,11 +201,17 @@ declare function precise_turn{
         prnt("actual_comp  ", actual_comp).
         prnt("adiff        ", adiff).
         prnt("actual_pitch ", actual_pitch).
-        prnt("dst_pitch ", dst_pitch).
+        prnt("dst_pitch    ", dst_pitch).
         prnt("actual_roll  ", actual_roll).
-        prnt("desired_roll  ", desired_roll).
+        prnt("desired_roll ", desired_roll).
+        prnt("roll_diff    ", roll_diff).
+        prnt("roll_modifier", roll_modifier).
+        prnt("angle_dist   ", angle_dist).
+        prnt("pitchPID     ", -angle_dist*roll_modifier).
         prnt("roll         ", roll).
         prnt("pitch        ", pitch).
+        prnt("comperr      ", comperr).
+        prnt("pitcherr     ", pitcherr).
         set ship:control:roll to roll.
         set ship:control:pitch to pitch.
         wait 0.01.

@@ -81,3 +81,7 @@ declare function prnt{
     print (lbl + " : " + val + "                 ") at (1,prnt_n).
     set prnt_n to prnt_n+1.
 }
+declare function vector2angle{
+    parameter x, y.
+    return 0.
+}
