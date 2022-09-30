@@ -1,5 +1,14 @@
 // #include utils.ks
 RUNONCEPATH("/util/utils.ks").
+local flight_log_path to "/log/flight-test.log".
+deletePath(flight_log_path).
+declare function flight_log{
+    parameter msg.
+    log msg to flight_log_path.
+}
+declare function release_controlls{
+    SET SHIP:CONTROL:NEUTRALIZE to TRUE.
+}
 declare function vang2{
     parameter v1.
     parameter v2.
@@ -17,6 +26,7 @@ declare function compass{
     return mod(360+vang2(NORTH:vector, VXCL(UP:VECTOR, dir)),360).
 }
 declare function angle180{
+    // Returns a relative angle from angle `from` to angle `to`
     parameter from,to.
     local diff to mod(to - from,360).
     if diff > 180{
@@ -28,14 +38,14 @@ declare function angle180{
     }
 }
 declare function angle_diff{
-    parameter a1.
-    parameter a2.
-    local res to 0.
-    set res to mod(a2-a1,360).
-    if res < 0{
-        set res to res + 360.
+    parameter from, to, dir is 0.
+    local rel_angle to angle180(from, to).
+    if dir = 0 return rel_angle.
+    if rel_angle*dir >= 0{
+        return rel_angle*dir.
+    } else{
+        return rel_angle*dir + 360.
     }
-    return res.
 }
 
 
@@ -72,33 +82,35 @@ declare function horizon_roll{
     return adiff.
 }
 declare function wide_turn{
-    parameter dst_azimuth.
-    parameter direction is 0.  // +-1
-    parameter stabilize4 is 3.  // +-1
+    parameter   dst_azimuth,
+                direction is 0,  // +-1
+                precision is 1.
     local start_azimuth to compass().
-    log "Start wide_turn()" to "/log/flight-test.log".
+    flight_log("Start wide_turn()" ).
 
-    log "   dst_azimuth   = " + dst_azimuth to "/log/flight-test.log".
-    log "   start_azimuth = " + start_azimuth to "/log/flight-test.log".
-    log "   direction     = " + direction to "/log/flight-test.log".
+    flight_log( "   dst_azimuth   = " + dst_azimuth ).
+    flight_log( "   start_azimuth = " + start_azimuth ).
+    flight_log( "   direction     = " + direction ).
 
     if direction = 0{
         set direction to choose 1 if dst_azimuth - start_azimuth > 0 else -1.
-        log "   set direction to " + direction to "/log/flight-test.log".
+        flight_log( "   set direction to " + direction ).
     }
     if (dst_azimuth - start_azimuth)*direction < 0{
         // If it needs to cross 0° or 360°
         set start_azimuth to start_azimuth - direction * 360.
     }
     local pitchPID to PIDLOOP(
-            0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                    0.001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
-                    0.001,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
+            1,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                    0.000000000000000000000001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+                    0.000000000000000000000001,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
                     -1,   // min possible throttle is zero.
                     1    // max possible throttle is one.
             ).
-
-    set pitchPID:SETPOINT to 0.
+    // we set pitch setpoint to 2° above horizon.
+    // So if actual pitch if higher, it will do nothing, but if it is on 0(where it should be),
+    // it will try to raise and then, roll will try to lower the prograde back to 0°
+    set pitchPID:SETPOINT to 2. 
     local rollPID to PIDLOOP(
             0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
                     0.0001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
@@ -120,6 +132,7 @@ declare function wide_turn{
         local  actual_roll to horizon_roll().
         local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
         local dir_modifier to cap(1-abs(direction*(90+actual_pitch)-actual_roll)/90,0,1).
+        // set dir_modifier to 0.
         local  pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
         if RCS{
             set  ship:control:pitch to pitch*dir_modifier.
@@ -149,11 +162,12 @@ declare function wide_turn{
         prnt("current_comp ", current_comp).
         prnt("SRFPROGRADE  ", compass(SRFPROGRADE:VECTOR)).
         prnt("comp         ", compass()).
-        if abs(adiff) < 1{
+        if abs(adiff) < precision{
             break.
         }
         wait 0.01.
     }
+    release_controlls().
 }
 
 declare function precise_turn{
@@ -217,8 +231,23 @@ declare function precise_turn{
         wait 0.01.
     }
     sasRevert().
+    release_controlls().
 }
-
+declare function turn{
+    parameter dst_compass, dir is 0, dst_pitch is 0.
+    local azimuth to compass().
+    local ang_diff to angle_diff(azimuth, dst_compass, dir).
+    flight_log("Start wide_turn()").
+    flight_log("ang_diff = " + ang_diff).
+    if abs(ang_diff) > 10{
+        flight_log( "Start wide turn" ).
+        wide_turn(dst_compass, dir, 10).
+    }
+    flight_log( "Start precise turn" ).
+    precise_turn(dst_compass, dst_pitch).
+    flight_log( "Finished turn").
+    release_controlls().
+}
 declare function fly2point{
     parameter dst.
     local lock bc to SHIP:BODY:POSITION.

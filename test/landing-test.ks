@@ -3,7 +3,7 @@ RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 RUNONCEPATH("util/plane.ks").
 // run "/test/strife.ks".
-run "/test/precise_turn_test.ks".
+run "/test/full_turn_test.ks".
 // print 1/0.
 CLEARSCREEN.
 CLEARVECDRAWS().
