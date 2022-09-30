@@ -115,25 +115,29 @@ declare function wide_turn{
             0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
                     0.0001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
                     0.03,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
-                    -0.1,   // min possible throttle is zero.
-                    0.1    // max possible throttle is one.
+                    -0.2,   // min possible throttle is zero.
+                    0.2    // max possible throttle is one.
             ).
     set rollPID:SETPOINT to 0.
     SAS OFF.
     local max_pitch to 5.
     print ("wide turn : " + dst_azimuth).
     until 0 {
-        set prnt_n to 5.
+        set prnt_n to 10.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.
         local pitch to pitchPID:UPDATE(TIME:SECONDS, UPPROGRADE).
         local  current_comp to compass().
-        local adiff to compass()-dst_azimuth.
+        local adiff to abs(angle_diff(current_comp, dst_azimuth)).
 
         local  actual_roll to horizon_roll().
         local actual_pitch to 90 - vectorangle(ship:up:forevector, ship:prograde:FOREVECTOR).
-        local dir_modifier to cap(1-abs(direction*(90+actual_pitch)-actual_roll)/90,0,1).
-        // set dir_modifier to 0.
-        local  pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
+        local dir_modifier to 1.
+        if actual_pitch < 0{
+            set pitch to 1.
+        }else {
+            set pitch to cap(abs(adiff), 0, max_pitch)/max_pitch.
+            set dir_modifier to cap(1-(direction*(90+actual_pitch)-actual_roll)/90,0,1).
+        }
         if RCS{
             set  ship:control:pitch to pitch*dir_modifier.
         }
@@ -153,6 +157,7 @@ declare function wide_turn{
         prnt("start_azimuth ", start_azimuth).
         prnt("dst_azimuth  ", dst_azimuth).
         prnt("adiff        ", adiff).
+        prnt("UPPROGRADE   ", UPPROGRADE).
         prnt("pitch        ", pitch).
         prnt("dir_modifier ", dir_modifier).
         prnt("actual_pitch ", actual_pitch).
@@ -162,7 +167,7 @@ declare function wide_turn{
         prnt("current_comp ", current_comp).
         prnt("SRFPROGRADE  ", compass(SRFPROGRADE:VECTOR)).
         prnt("comp         ", compass()).
-        if abs(adiff) < precision{
+        if adiff < precision{
             break.
         }
         wait 0.01.
