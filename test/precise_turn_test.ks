@@ -41,6 +41,7 @@ for test in tests{
     set dirVecDraw:vecupdater to {return dirVec*100.}.
     local facingDraw to vecDraw(v(0,0,0), facing:forevector*100, red, "facing",1,true).
     set facingDraw:vecupdater to {return vxcl(UP:forevector, facing:forevector):normalized*100.}.
+    wait 5.
     precise_turn(current_comp+angle, pitch).
     print "Turn is done".
     RCS OFF.

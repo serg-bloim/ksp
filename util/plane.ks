@@ -25,6 +25,10 @@ declare function compass{
     }
     return mod(360+vang2(NORTH:vector, VXCL(UP:VECTOR, dir)),360).
 }
+declare function read_pitch{
+    parameter dir is facing.
+    return 90 - vectorangle(ship:up:forevector, dir:FOREVECTOR).
+}
 declare function angle180{
     // Returns a relative angle from angle `from` to angle `to`
     parameter from,to.
@@ -275,15 +279,57 @@ declare function turn{
 }
 declare function fly2point{
     parameter dst.
+    parameter stop_predicate.
     local lock bc to SHIP:BODY:POSITION.
     local rel_dst is dst - bc.
     local lock dst2 to bc + rel_dst.
     local sasrecovery to SasOffBackup().
-
+    lock steering to heading(compass(dst2),0,0).
    unlock STEERING.
    unlock THROTTLE.
    sasrecovery().
 
+}
+declare function stabilize{
+    parameter dst.
+    parameter stop_condition is {return false.}.
+    parameter stabilize4 is 5.
+    parameter alt to ship:altitude.
+    local rel_dst to dst - ship:body:position.
+    local lock azimuth to compass(ship:body:position+rel_dst).
+    lock steering to heading(azimuth,0,0).
+    local cond to timed_condition(
+        {return 
+            abs(horizon_roll()) < 5 and
+            abs(read_pitch()) < 5.}, 
+        {
+            parameter ts, res.
+            print("First stabilization: " + round(ts,1) + "              ") at (0,2).
+        }
+    ).
+    wait_cond(2, cond).
+    local pitchPID to pidLoop(1,0.1, 0.5,-10,20).
+    set cond to create_condition(stabilize4,
+        timed_condition(
+            stop_condition, 
+            {
+                parameter ts, res.
+                print("Second stabilization: " + round(ts,1) + "              ") at (0,2).
+            }
+        )).
+
+    local pitch to 0.
+    lock steering to heading(azimuth,pitch).
+    until 0 {
+        set pitchPID:setpoint to (alt - ship:altitude)/5.
+        set pitch to pitchPID:update(time:seconds, SHIP:VERTICALSPEED).
+        print("azimuth: " + round(azimuth,1) + "              ") at (0,3).
+        print("pitch  : " + round(pitch,1) + "              ") at (0,4).
+        if cond() break.
+        wait 0.01.
+    }
+    lock steering to heading(azimuth,0,0).
+    print "Stable                                         " at (0,2).
 }
 declare function prepare_landing{
     parameter wp1.
@@ -326,20 +372,18 @@ declare function prepare_landing{
 
     // }
     CLEARSCREEN.
-    print("Dir to C "+ compass(c_goal)).
-    wide_turn(compass(c_goal), dir).
-    update().
+    log_main("Turning to C "+ compass(c_goal)).
+    wide_turn(c_goal, 0, 10).
     CLEARSCREEN.
-    print("Go to C").
-    fly2point(c_goal).
-    update().
+    log_main("Go to C").
+    stabilize(c_goal,{return c_goal:MAG < 1000.}, 1,1000).
     unlock STEERING.
     unlock THROTTLE.
     CLEARSCREEN.
-    print("wide turn").
+    log_main("wide turn").
     wide_turn(compass(p2-p1), dir).
     update().
-    print("Done").
+    log_main("Done").
     unset vd1.
     unset vd2.
     unset vd3.

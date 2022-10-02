@@ -1,13 +1,13 @@
 set G0 to 9.80665.
 declare function get_burn_duration{
     declare parameter dv.
-    declare parameter mass.
+    declare parameter mymass.
     declare parameter isp.
     declare parameter thrust.
     local ex_vel is isp * G0.
     local flow_rate is thrust / ex_vel.
-    local end_mass is Constant:E ^ (ln(mass) - dv/ex_vel).
-    local dm is mass - end_mass.
+    local end_mass is Constant:E ^ (ln(mymass) - dv/ex_vel).
+    local dm is mymass - end_mass.
     local burn_time is dm / flow_rate.
     return burn_time.
 }
@@ -49,7 +49,6 @@ declare function exec_node{
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
 
-    set np to nd:deltav. //points to node, don't care about the roll direction.
     SAS OFF.
     lock steering to nd:deltav.
     wait until nd:eta <= (before_midpoint_duration + 60).

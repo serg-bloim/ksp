@@ -1,13 +1,15 @@
-// CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
-RUNONCEPATH("util/utils.ks").
-RUNONCEPATH("util/dbg.ks").
+// #include "../util/plane.ks"
 RUNONCEPATH("util/plane.ks").
-// run "/test/strife.ks".
-run "/test/full_turn_test.ks".
-// print 1/0.
+// #include "../util/utils.ks"
+RUNONCEPATH("util/utils.ks").
+// #include "../util/log.ks"
+RUNONCEPATH("util/log.ks").
+// #include "../util/dbg.ks"
+RUNONCEPATH("util/dbg.ks").
 CLEARSCREEN.
 CLEARVECDRAWS().
-print "Landing-test".
+set log_main to also_print(create_rolling_logger("/log/test-main.log")).
+log_main ("Landing-test").
 local body_c is SHIP:BODY:POSITION.
 
 local wp1 is  WAYPOINT("Line-start").
@@ -15,9 +17,9 @@ local wp2 is  WAYPOINT("Lane-end").
 local lock p1 to wp1:POSITION.
 local lock p2 to wp2:POSITION.
 
-print("Preparing for landing.").
+log_main("Preparing for landing.").
 prepare_landing(wp1, wp2).
-print("Landing").
+log_main("Landing").
 
 local vecd is VECDRAW(p1,p2-p1, green, "dir", 1, true).
 local vecd_norm is VECDRAW(V(0,0,0),V(0,0,0), red, "norm", 1, true).

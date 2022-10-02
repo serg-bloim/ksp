@@ -64,8 +64,20 @@ declare function wait_cond{
     parameter stable_time, predicate.
     local cond to create_condition(stable_time, predicate).
     until cond(){
-        wait 1.
+        wait 0.1.
     }
+}
+declare function timed_condition{
+    parameter predicate.
+    parameter timed_action.
+    local stable_since to 2147483647.
+    return {
+        local res to predicate().
+        local now to time:seconds.
+        set stable_since to choose min(stable_since, now) if res else 2147483647.
+        timed_action(now - min(stable_since, now), res).
+        return res.
+    }.
 }
 declare function SasOffBackup{
     if SAS {
@@ -84,4 +96,9 @@ declare function prnt{
 declare function vector2angle{
     parameter x, y.
     return 0.
+}
+declare function start_timer{
+    parameter dur.
+    local started to time:seconds.
+    return {return time:seconds - started > dur.}.
 }

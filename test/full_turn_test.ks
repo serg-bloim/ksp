@@ -3,6 +3,8 @@
 RUNONCEPATH("util/plane.ks").
 // #include "../util/utils.ks"
 RUNONCEPATH("util/utils.ks").
+// #include "../util/log.ks"
+RUNONCEPATH("util/log.ks").
 // #include "../util/dbg.ks"
 RUNONCEPATH("util/dbg.ks").
 CLEARSCREEN.
