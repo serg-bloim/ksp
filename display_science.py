@@ -5,10 +5,13 @@ import sfsutils
 from tabulate import tabulate
 from addict import Dict
 
+from scince_utils import experiments
+from utils import ensure_list
+
 data = Dict(
     sfsutils.parse_savefile(r"F:\steam\steamapps\common\Kerbal Space Program\saves\UkrainianSpaseAgency\quicksave.sfs"))
 ships = data.GAME.FLIGHTSTATE.VESSEL
-ship_name = 'Mun-science-rover'
+ship_name = 'Crow'
 ships = list(sorted((s for s in ships if ship_name in s.name), key=lambda x: x.name))
 print(f"Ships: {[s.name for s in ships]}")
 
@@ -72,13 +75,6 @@ class Report:
                 and (biom is None or s.biom == biom)]
 
 
-def ensure_list(lst):
-    if isinstance(lst, list):
-        return lst
-    else:
-        return [lst]
-
-
 exp_shorts = {
     'evaReport': 'eva',
     'evaScience': 'evaSci',
@@ -89,9 +85,12 @@ exp_shorts = {
     'barometerScan': 'barom',
     'seismicScan': 'seism',
     'ROCScience_MunStone': 'munstone',
-    'ROCScience_MunLargeCrater': 'munlcrater'
+    'ROCScience_MunLargeCrater': 'munlcrater',
+    'deployedGooObservation': 'depGoo',
+    'ROCScience_MinmusGreenSandstone': 'minmusSandstone',
+    'deployedIONCollector': 'depION',
+    'deployedIONCollector': 'minmusOlivine',
 }
-
 
 def print_ship_science(ship):
     science_containers = [p for p in ship.PART if is_science_container(p)]
@@ -110,9 +109,19 @@ def print_ship_science(ship):
                 row = [body, biom, sit]
                 table.append(row)
                 for exp in exps:
+                    if exp in experiments:
+                        mode = experiments[exp][sit]
+                    else:
+                        mode = 'global' if biom == '' else 'biome'
                     sd = rep.find(experiment=exp, body=body, biom=biom, situation=sit)
-                    row.append(len(sd))
-                row.append(len(rep.find(body=body, biom=biom, situation=sit)))
+                    val = len(sd)
+                    if mode == '-':
+                        val = '-'
+                    elif mode == 'global' and biom != '':
+                        val = '-'
+                    row.append(val)
+                total = len(rep.find(body=body, biom=biom, situation=sit))
+                row.append(total)
 
     exp_headers = ['body', 'biome', 'situation'] + [exp_shorts[e] if e in exp_shorts else e for e in exps] + ["Total"]
     print(f"Ship: '{ship.name}'")
