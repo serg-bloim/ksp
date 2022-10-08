@@ -1,0 +1,4 @@
+body   , radius , mu         , axisperiod
+Kerbin , 600000 , 3.53E+12   , 21549.425
+Mun    , 200000 , 6.51E+10   , 138984
+Minmus , 60000  , 1.77E+09   , 40400

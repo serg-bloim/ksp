@@ -3,3 +3,4 @@ matplotlib
 sfsutils
 addict
 tabulate
+scipy
