@@ -1,5 +1,7 @@
 import csv
+import math
 from enum import Enum, auto
+from math import sqrt
 
 _body_data = {}
 with open('body.csv', newline='') as csvfile:
@@ -18,3 +20,11 @@ class Body(Enum):
 
     def __init__(self, val) -> None:
         self.radius, self.mu, self.axisperiod = _body_data[self.name]
+
+    def get_period(self, alt):
+        h = alt + self.radius
+        return 2 * math.pi * sqrt(h ** 3 / self.mu)
+
+    def get_circular_alt(self, period):
+        h = ((period/2/math.pi)**2 * self.mu) ** (1./3)
+        return h - self.radius
