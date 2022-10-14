@@ -20,7 +20,7 @@ declare function countdown{
     }
     PRINT "0".
 }
-local ESC is CHAR(27).
+global ESC is CHAR(27).
 declare function wait_until_esc{
     until terminal:input:getchar = ESC{
 
@@ -111,3 +111,23 @@ declare function show_terminal_if_required{
         CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
     }
 }
+local exit_reading_input to false.
+declare function start_reading_input{
+    global chars_read_num to 0.
+    global last_read_char to "".
+    set exit_reading_input to false.
+    when exit_reading_input or terminal:input:haschar then{
+        if exit_reading_input{
+            return false.
+        }
+        local ch to terminal:input:getchar().
+        set last_read_char to ch.
+        set chars_read_num to chars_read_num + 1.
+        return true.
+    }
+}
+declare function stop_reading_input{
+    set exit_reading_input to true.
+}
+
+
