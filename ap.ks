@@ -7,9 +7,10 @@ local ap_ui_main_alt is ui_reg_lbl(ap_ui_main, 17,2,12).
 local ap_ui_main_alt_tune is ui_reg_lbl(ap_ui_main, 19,3,7).
 local ap_ui_main_stable is ui_reg_lbl(ap_ui_main, 14,5,7).
 local ap_ui_main_dst is ui_reg_lbl(ap_ui_main, 14,6,14).
-local ap_ui_main_mode is ui_reg_lbl(ap_ui_main, 14,7,14).
-local ap_ui_main_wp_l1 is ui_reg_lbl(ap_ui_main, 14,8,14).
-local ap_ui_main_wp_l2 is ui_reg_lbl(ap_ui_main, 2,9,26).
+local ap_ui_main_timeleft is ui_reg_lbl(ap_ui_main, 14,7,14).
+local ap_ui_main_mode is ui_reg_lbl(ap_ui_main, 14,8,14).
+local ap_ui_main_wp_l1 is ui_reg_lbl(ap_ui_main, 14,9,14).
+local ap_ui_main_wp_l2 is ui_reg_lbl(ap_ui_main, 2,10,26).
 
 local ap_ui_chalt_curr is ui_reg_lbl(ap_ui_change_alt, 16,3,12).
 local ap_ui_chalt_new is ui_reg_lbl(ap_ui_change_alt, 16,5,12).
@@ -158,7 +159,7 @@ until 0 {
         set air_dist to VECTORANGLE((wp:position+sbp), sbp) * sbp:MAG * constant:DegToRad.
         ui_prnt_lbl(ap_ui_main_stable, round(TIME:SECONDS - stable_since,1)).
         ui_prnt_lbl(ap_ui_main_dst, (CHOOSE ROUND(air_dist/1000, 1) + " km" if air_dist > 10000 ELSE ROUND(air_dist) + " m")).
-
+        ui_prnt_lbl(ap_ui_main_timeleft, TimeStamp(air_dist/ship:groundspeed):Clock).
 
         set my_pos_alt to ship:GEOPOSITION:ALTITUDEPOSITION(target_alt + fine_tune_alt).
         if my_pos_alt:mag > max_elevation{

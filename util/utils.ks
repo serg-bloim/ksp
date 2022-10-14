@@ -102,3 +102,12 @@ declare function start_timer{
     local started to time:seconds.
     return {return time:seconds - started > dur.}.
 }
+declare function check_flag{
+    parameter name.
+    return SHIP:PARTSTAGGEDPATTERN(name):LENGTH > 0.
+}
+declare function show_terminal_if_required{
+    if check_flag("show_terminal"){
+        CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
+    }
+}

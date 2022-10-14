@@ -51,14 +51,19 @@ declare function exec_node{
 
     SAS OFF.
     lock steering to nd:deltav.
-    wait until nd:eta <= (before_midpoint_duration + 60).
-
-
-    //now we need to wait until the burn vector and ship's facing are aligned
     wait until vang(nd:deltav, ship:facing:vector) < 0.25.
     print "The ship is facing the right direction".
+    wait until nd:eta <= (before_midpoint_duration + 60).
+    if kuniverse:timewarp:rate > 10{
+        print "lowering the warp to x10.".
+        set kuniverse:timewarp:rate to 10.
+    }
 
     //the ship is facing the right direction, let's wait for our burn time. It's late for ~ 1 sec
+    wait until nd:eta <= (before_midpoint_duration+20).
+    print "Cancelling the warp".
+    kuniverse:timewarp:cancelwarp().
+
     wait until nd:eta <= before_midpoint_duration.
     print "burn time".
 

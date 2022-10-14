@@ -118,15 +118,15 @@ declare function wide_turn{
     // it will try to raise and then, roll will try to lower the prograde back to 0°
     set pitchPID:SETPOINT to 2. 
     local rollPID to PIDLOOP(
-            0.001,   // adjust throttle 0.1 per 5m in error from desired altitude.
-                    0.0001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
+            0.01,   // adjust throttle 0.1 per 5m in error from desired altitude.
+                    0.001,  // adjust throttle 0.1 per second spent at 1m error in altitude.
                     0.03,   // adjust throttle 0.1 per 3 m/s speed toward desired altitude.
                     -0.2,   // min possible throttle is zero.
                     0.2    // max possible throttle is one.
             ).
     set rollPID:SETPOINT to 0.
     SAS OFF.
-    local max_pitch to 5.
+    local max_pitch to 3.
     until 0 {
         set prnt_n to 10.
         local UPPROGRADE is SHIP:VELOCITY:ORBIT * UP:VECTOR.

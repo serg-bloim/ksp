@@ -15,6 +15,21 @@ declare function select{
     print ">" at (0, i).
     set selected to i.
 }
+declare function find_preload_info{
+    local tagname to "browser_preload=".
+    for p in ship:partstaggedpattern(tagname){
+        local index to p:tag:indexof(tagname).
+        local i to index+tagname:length+1.
+        from { } until i >= p:tag:length STEP{ set i to i + 1.} DO{
+            local ch to p:tag[i].
+            if ch = " " or ch = ";" {
+                break.
+            }
+        }
+        return p:tag:substring(index+tagname:length, i-index-tagname:length).
+    }
+    return "".
+}
 declare function print_files{
     CLEARSCREEN.
     set max_files to 0.
@@ -23,6 +38,10 @@ declare function print_files{
         set max_files to max_files + 1.
     }
     select(selected).
+}
+local preload to find_preload_info().
+if preload <> "" {
+    RUNPATH(dir + "/" + preload + ".ks").
 }
 print_files.
 local in is terminal:input.

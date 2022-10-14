@@ -5,6 +5,7 @@
 ║              └─────────────║
 ║ Stable, s :                ║
 ║ Trv dist  :                ║
+║ Time left :                ║
 ║ Mode      :                ║
 ║ Waypoint  :                ║
 ║                            ║
