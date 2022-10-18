@@ -1,4 +1,5 @@
 parameter autostart is false.
+// #include "../util/maneuvers.ks"
 RUNONCEPATH("util/maneuvers.ks").
 // #include "../util/utils.ks"
 RUNONCEPATH("util/utils.ks").
@@ -6,6 +7,7 @@ RUNONCEPATH("util/utils.ks").
 RUNONCEPATH("util/dbg.ks").
 CLEARSCREEN.
 clearVecDraws().
+start_reading_input().
 local prograde_dir to 3.
 local prograde_dirs to list("East", "South", "West","North").
 local changing_prograde_dir to true.
@@ -21,7 +23,15 @@ toggle RCS.
 wait until prograde_dir = 0.
 SAS OFF.
 if not autostart{
+    local autostart_trigger to false.
+    when autostart_trigger or last_read_char:tolower() = "t" then{
+        if autostart_trigger{
+            return.
+        }
+        SAS ON.
+    }
     WAIT UNTIL SAS.
+    set autostart_trigger to true.
 }
 CLEARSCREEN.
 print "prograde_dir is " + prograde_dir + "(" +prograde_dirs[prograde_dir]+ ")".
@@ -30,11 +40,12 @@ set prograde_dir to prograde_dirs[prograde_dir].
 print "prograde_dir is " + prograde_dir.
 set changing_prograde_dir to false.
 local dirvector to ANGLEAXIS(prograde_dir,SHIP:UP:forevector) * north:forevector.
+local dirup to ANGLEAXIS(-90,SHIP:UP:forevector) * lookDirUp(up:forevector, dirvector).
 // show_vect(dirvector*5).
 // show_vect(SHIP:UP:TOPVECTOR*10, green).
 SAS OFF.
 LOCK THROTTLE TO twr2throttle(3).
-LOCK STEERING TO UP.
+LOCK STEERING TO dirup.
 print("Launch in...").
 countdown(3).
 local stage_cnt to 1.
@@ -51,17 +62,20 @@ for p in SHIP:PARTSTAGGED("stage_on_empty") {
 }
 STAGE.
 
-set dir_east_10degree to ANGLEAXIS(-10,dirvector)*SHIP:UP.
+set dir_east_10degree to ANGLEAXIS(-10,dirvector)*dirup.
+// set dir_east_10degree to lookDirUp(dir_east_10degree:forevector, ship:up:forevector).
+// show_rot(dir_east_10degree).
 local dst_apoapsis is 80000.
 
 WAIT UNTIL VDOT(SHIP:VELOCITY:SURFACE, SHIP:UP:VECTOR) > 100.
 PRINT "SPEED > 100 m/s".
+
 LOCK STEERING TO dir_east_10degree.
 WAIT UNTIL SHIP:ALTITUDE > 10000.
 PRINT "ALTITUDE > 10k".
 LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
 lock attack_angle to (-7.36E-3*SHIP:ALTITUDE*SHIP:ALTITUDE/1000000 + 1.84*SHIP:ALTITUDE/1000 + -8.1).
-lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*SHIP:UP.
+lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
 LOCK STEERING TO prograde_east.
 //ON attack_angle{
 //    print (round(attack_angle,2)) at (5,3).
@@ -81,7 +95,7 @@ WAIT UNTIL OBT:APOAPSIS > dst_apoapsis.
 LOCK THROTTLE TO 0.
 print "Apoapsis reached!".
 WAIT UNTIL SHIP:ALTITUDE > 60000.
-LOCK STEERING TO ANGLEAXIS(-80,dirvector)*SHIP:UP.
+LOCK STEERING TO ANGLEAXIS(-80,dirvector)*dirup.
 print "We've got into space!".
 IF OBT:APOAPSIS < dst_apoapsis {
     print "Correcting APOAPSIS".
@@ -100,6 +114,7 @@ print "DV: " + dv.
 SET circular_obt to NODE(ut, 0, 0, dv ).
 ADD circular_obt.
 exec_node(circular_obt).
+stop_reading_input().
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 SAS ON.
 print "DONE".

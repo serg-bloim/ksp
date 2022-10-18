@@ -48,6 +48,8 @@ declare function exec_node{
     local burn_duration is get_burn_duration(nd:deltav:mag, ship:mass, isp, total_thrust).
     local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, ship:mass, isp, total_thrust).
 
+    print "Total thrust: " + total_thrust.
+    print "Isp: " + isp.
     print "Estimated burn duration: " + round(burn_duration, 3) + "s".
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
