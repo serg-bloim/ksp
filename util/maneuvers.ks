@@ -1,15 +1,41 @@
+RUNONCEPATH("/util/utils.ks").
+RUNONCEPATH("/util/stages.ks").
 set G0 to 9.80665.
+// declare function get_burn_duration{
+//     declare parameter dv.
+//     declare parameter mymass.
+//     declare parameter isp.
+//     declare parameter thrust.
+//     local ex_vel is isp * G0.
+//     local flow_rate is thrust / ex_vel.
+//     local end_mass is Constant:E ^ (ln(mymass) - dv/ex_vel).
+//     local dm is mymass - end_mass.
+//     local burn_time is dm / flow_rate.
+//     return burn_time.
+// }
 declare function get_burn_duration{
     declare parameter dv.
-    declare parameter mymass.
-    declare parameter isp.
-    declare parameter thrust.
+    local stages is get_stages().
+    local total_burn_duration to 0.
+    local last_stage is stages[0].
+    // print stages.
+    for s in stages{
+        if s[5] > dv {set last_stage to s. break.}.
+        set dv to dv - s[5].
+        set total_burn_duration to total_burn_duration + s[6].
+    }
+    // print last_stage.
+    local mymass to last_stage[0].
+    local isp to last_stage[1].
+    local thrust to last_stage[2].
     local ex_vel is isp * G0.
     local flow_rate is thrust / ex_vel.
     local end_mass is Constant:E ^ (ln(mymass) - dv/ex_vel).
     local dm is mymass - end_mass.
     local burn_time is dm / flow_rate.
-    return burn_time.
+
+    set total_burn_duration to total_burn_duration + burn_time.
+    return total_burn_duration.
 }
 declare function exec_node{
     declare parameter nd.
@@ -46,14 +72,15 @@ declare function exec_node{
         }
     }
     local isp is total_thrust / total_fuel_consumption / G0.
-    local burn_duration is get_burn_duration(nd:deltav:mag, ship:mass, isp, total_thrust).
-    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, ship:mass, isp, total_thrust).
+    local burn_duration is get_burn_duration(nd:deltav:mag).
+    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2).
 
     print "Total thrust: " + total_thrust.
     print "Isp: " + isp.
     print "Estimated burn duration: " + round(burn_duration, 3) + "s".
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
+    KUniverse:PAUSE().
     local warp_enabled to false.
     on chars_read_num{
         local ch to last_read_char:tolower().
@@ -78,8 +105,10 @@ declare function exec_node{
         set sasMode to "MANEUVER".
     }else{
         SAS OFF.
+        set man_vec to nd:deltav.
+        lock steering to man_vec.
+        wait until done or vang(man_vec, ship:facing:vector) < 1.
         lock steering to nd:deltav.
-        wait until done or vang(nd:deltav, ship:facing:vector) < 0.25.
         print "The ship is facing the right direction".
     }
     if warp_enabled {

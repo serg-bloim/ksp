@@ -112,6 +112,8 @@ declare function show_terminal_if_required{
     }
 }
 local exit_reading_input to false.
+set chars_read_num to 0.
+set last_read_char to "".
 declare function start_reading_input{
     global chars_read_num to 0.
     global last_read_char to "".
