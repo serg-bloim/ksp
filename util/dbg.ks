@@ -1,3 +1,5 @@
+// #include "../util/log.ks"
+RUNONCEPATH("util/log.ks").
 function show_rot {
     declare parameter rot.
     set front to rot:vector*1000.
@@ -13,3 +15,4 @@ function show_vect {
     declare parameter color is red.
     VECDRAW(V(0,0,0),vec, color, lbl, 1, true).
 }
+set dbg to also_print(create_rolling_logger("/log/dbg-main.log")).

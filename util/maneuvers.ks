@@ -16,6 +16,7 @@ declare function exec_node{
     local exec_node_triggers_enabled to true.
     local warp_trigger_enabled to true.
     local done to False.
+    local usingSas to SHIP:PARTSTAGGED("manexec:usesas"):length > 0.
     //print out node's basic parameters - ETA and deltaV
     print "Node in: " + round(nd:eta) + ", DeltaV: " + round(nd:deltav:mag).
 
@@ -70,10 +71,17 @@ declare function exec_node{
         }
         return exec_node_triggers_enabled.
     }
-    SAS OFF.
-    lock steering to nd:deltav.
-    wait until done or vang(nd:deltav, ship:facing:vector) < 0.25.
-    print "The ship is facing the right direction".
+    local prevSasMode to sasMode.
+    if usingSas{
+        SAS ON.
+        wait 0.
+        set sasMode to "MANEUVER".
+    }else{
+        SAS OFF.
+        lock steering to nd:deltav.
+        wait until done or vang(nd:deltav, ship:facing:vector) < 0.25.
+        print "The ship is facing the right direction".
+    }
     if warp_enabled {
         // 10 - seconds before node burn start
         kuniverse:timewarp:warpto(time:seconds + nd:eta - before_midpoint_duration - 10).
@@ -127,7 +135,11 @@ declare function exec_node{
                 }
         wait 0.
     }
-    unlock steering.
+    if usingSas {
+        set sasMode to prevSasMode.
+    }else{
+        unlock steering.
+    }
     unlock throttle.
     set exec_node_triggers_enabled to false.
     set warp_trigger_enabled to false.
