@@ -14,12 +14,12 @@ declare function telemetry2file{
     log line to file.
 }
 declare function file_next_suffix{
-    parameter path.
-    if not exists(path){
-        return path.
+    parameter fpath.
+    if not exists(fpath){
+        return fpath.
     }
-    local parts to path:split(".").
-    local prefix to path.
+    local parts to fpath:split(".").
+    local prefix to fpath.
     local ext to "".
     if parts:length > 1{
         set ext to "." + parts[parts:length-1].
@@ -34,11 +34,11 @@ declare function file_next_suffix{
     }
 }
 declare function create_rolling_logger{
-    parameter path.
+    parameter fpath.
     parameter print_time is true.
-    if exists(path){
-        local arc_path to file_next_suffix(path).
-        movePath(path, arc_path).
+    if exists(fpath){
+        local arc_path to file_next_suffix(fpath).
+        movePath(fpath, arc_path).
     }
     return {
         parameter msg.

@@ -1,3 +1,4 @@
+@CLOBBERBUILTINS on.
 declare function cap{
     parameter val.
     parameter min is 0.
@@ -13,6 +14,7 @@ declare function cap{
 declare function countdown{
     declare parameter cnt is 10.
     declare parameter delay is 1.
+    print "test".
     UNTIL cnt = 0 {
         PRINT cnt.
         SET cnt to cnt - 1.
@@ -31,14 +33,14 @@ declare function esc_pressed{
 }
 declare function twr2throttle{
     parameter twr.
-    local maxthrust is SHIP:MAXTHRUST.
+    local maxthrust is SHIP:AVAILABLETHRUST.
     if maxthrust = 0{
         return 0.
     }
     local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
     local weight is SHIP:MASS * SHIP:BODY:MU / r / r.
     local thrust is twr * weight.
-    return thrust / SHIP:MAXTHRUST.
+    return thrust / SHIP:AVAILABLETHRUST.
 }
 declare function current_thrust{
     local thr to 0.

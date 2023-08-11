@@ -1,3 +1,4 @@
+@CLOBBERBUILTINS on.
 parameter autostart is false.
 // #include "../util/maneuvers.ks"
 RUNONCEPATH("util/maneuvers.ks").
@@ -5,11 +6,19 @@ RUNONCEPATH("util/maneuvers.ks").
 RUNONCEPATH("util/utils.ks").
 // #include "../util/dbg.ks"
 RUNONCEPATH("util/dbg.ks").
+RUNONCEPATH("util/orb.ks").
 declare function do_lifter{
     parameter autostart.
     local prog_done to false.
+    function create_angle_func{
+        parameter h is 80000, b is 0.25, c is 5, a is 90.
+        return {
+            parameter _alt.
+            return a/(1+b*((_alt/h)^(-c) - 1)).
+        }.
+    }
     function internal{
-            CLEARSCREEN.
+            // CLEARSCREEN.
             clearVecDraws().
             start_reading_input().
             local prograde_dir to 3.
@@ -51,15 +60,66 @@ declare function do_lifter{
             set prograde_dir to prograde_dirs[prograde_dir].
             print "prograde_dir is " + prograde_dir.
             set changing_prograde_dir to false.
-            local dirvector to ANGLEAXIS(prograde_dir,SHIP:UP:forevector) * north:forevector.
-            local dirup to ANGLEAXIS(-90,SHIP:UP:forevector) * lookDirUp(up:forevector, dirvector).
+
+            function createApVelocityTracker{
+                local lastApVal is OBT:apoapsis.
+                local lastUpdateTime is TIME:seconds.
+                local lastApVelocity is 0.
+                return {
+                    if TIME:SECONDS - lastUpdateTime > 0{
+                        local ap is OBT:apoapsis.
+                        set lastApVelocity to (ap - lastApVal) / (TIME:SECONDS - lastUpdateTime).
+                        set lastUpdateTime to TIME:SECONDS.
+                        set lastApVal to ap.
+                    }
+                    return lastApVelocity.
+                }.
+            }
+            local apVelTracker is createApVelocityTracker().
+            lock upref to up:forevector.
+            lock upApref to upref.
+            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            local dirvector to ANGLEAXIS(prograde_dir,upref) * north:forevector.
+            lock dirup to ANGLEAXIS(-90,upref) * lookDirUp(upref, dirvector).
             // show_vect(dirvector*5).
             // show_vect(SHIP:UP:TOPVECTOR*10, green).
             SAS OFF.
-            LOCK THROTTLE TO twr2throttle(3).
+            local dst_apoapsis is 80000.
+            set angle_func to create_angle_func(dst_apoapsis).
+            lock attack_angle to angle_func(obt:apoapsis).
+            function calc_throttle{
+                // return 1.
+                local dAp is dst_apoapsis - OBT:APOAPSIS.
+                local t is 10.
+                local apSpeed is apVelTracker().
+                local time2Ap is dAp / cap(apSpeed, 0.00001, 100000).
+                local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
+                local g is SHIP:BODY:MU / r / r.
+                local gravAcc is BODY:POSITION:normalized * g.
+                // local gVacc is (dAp/t).
+                local gVacc is 2 * (dAp - apSpeed * t) / t^2.
+
+                set gVacc to gVacc.
+                local angleVsApoapsis is VANG(upApref, ship:facing:forevector).
+                // local accLimitV is (gVacc - gravAcc * upApref) / cos(angleVsApoapsis).
+                local accLimitV is time2Ap/t.
+                local gHv is circularOrbDv(BODY, dst_apoapsis).
+                local dHv is gHv - ship:GROUNDSPEED.
+                set t to 1.
+                local gHacc is dHv / t.
+                local accLimitH is (gHacc) / sin(angleVsApoapsis).
+                local gThrust is min(accLimitH * SHIP:MASS,accLimitV * SHIP:AVAILABLETHRUST).
+                local res is cap(gThrust / SHIP:availableThrust, 0, 1).
+                print "ApAngle: " + round(angleVsApoapsis, 2) + " dAp: " + round(dAp, 2) + " apSpeed: " + round(apSpeed, 2)+ " gVacc: " + round(gVacc, 2) + " accLimitV: " + round(accLimitV, 2) + " accLimitH: " + round(accLimitH, 2) + " gThrust: " + round(gThrust, 2).
+                return res.
+            }
+            lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
             LOCK STEERING TO dirup.
+            LOCK STEERING TO prograde_east.
+            LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
+
             print("Launch in...").
-            countdown(3).
+            // countdown(3).
             local stage_cnt to 1.
             for p in SHIP:PARTSTAGGED("stage_on_empty") {
                 print "Staging part detected: " + p:NAME.
@@ -73,24 +133,25 @@ declare function do_lifter{
                     STAGE.
                 }
             }
+            
+            
             STAGE.
+            LOCK THROTTLE TO calc_throttle().
+            wait 10.
 
-            set dir_east_10degree to ANGLEAXIS(-9.5,dirvector)*dirup.
+            // set dir_east_10degree to ANGLEAXIS(-9.5,dirvector)*dirup.
             // set dir_east_10degree to lookDirUp(dir_east_10degree:forevector, ship:up:forevector).
             // show_rot(dir_east_10degree).
-            local dst_apoapsis is 82000.
 
             WAIT UNTIL prog_done or VDOT(SHIP:VELOCITY:SURFACE, SHIP:UP:VECTOR) > 100.
             if prog_done return.
             PRINT "SPEED > 100 m/s".
-            LOCK STEERING TO dir_east_10degree.
+            // LOCK STEERING TO dir_east_10degree.
             WAIT UNTIL prog_done or SHIP:ALTITUDE > 10000.
             if prog_done return.
             PRINT "ALTITUDE > 10k".
-            LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
-            lock attack_angle to (-7.36E-3*SHIP:ALTITUDE*SHIP:ALTITUDE/1000000 + 1.84*SHIP:ALTITUDE/1000 + -8.1).
-            lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
-            LOCK STEERING TO prograde_east.
+            // LOCK THROTTLE TO twr2throttle(10).
+
             //ON attack_angle{
             //    print (round(attack_angle,2)) at (5,3).
             //    return true.
@@ -106,14 +167,15 @@ declare function do_lifter{
                 local twr is 2.99e-05*ap_gap*ap_gap + 8.72e-03*ap_gap+0.0545.
                 return twr2throttle(twr).
             }
-            LOCK THROTTLE TO twr2throttle(0.3).
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
-            if prog_done return.
-            LOCK THROTTLE TO 0.
             print "Apoapsis reached!".
+            // LOCK THROTTLE TO 0.
+            wait 1000.
+            if prog_done return.
+            // LOCK THROTTLE TO 0.
             WAIT UNTIL prog_done or SHIP:ALTITUDE > 60000.
             if prog_done return.
-            LOCK STEERING TO ANGLEAXIS(-80,dirvector)*dirup.
+            // LOCK STEERING TO ANGLEAXIS(-80,dirvector)*dirup.
             print "We've got into space!".
             IF OBT:APOAPSIS < dst_apoapsis {
                 print "Correcting APOAPSIS".

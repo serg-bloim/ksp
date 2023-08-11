@@ -13,6 +13,7 @@ function show_vect {
     declare parameter vec.
     declare parameter lbl is "".
     declare parameter color is red.
-    VECDRAW(V(0,0,0),vec, color, lbl, 1, true).
+    declare parameter origin is V(0,0,0).
+    VECDRAW(origin,vec, color, lbl, 1, true).
 }
 set dbg to also_print(create_rolling_logger("/log/dbg-main.log")).
