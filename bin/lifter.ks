@@ -11,9 +11,12 @@ declare function do_lifter{
     parameter autostart.
     local prog_done to false.
     function create_angle_func{
-        parameter h is 80000, b is 0.25, c is 2, a is 90, off is 0.
+        parameter h is 80000, b is 0.25, c is 2, a is 80, off is 0.
         return {
             parameter _alt.
+            if _alt<=0 {
+                RETURN off.
+            }
             return a/(1+b*((_alt/h)^(-c) - 1)) + off.
         }.
     }
@@ -90,9 +93,10 @@ declare function do_lifter{
                 // return 1.
                 local angleVsApoapsis is VANG(upApref, ship:facing:forevector).
                 local dAp is dst_apoapsis - OBT:APOAPSIS.
-                local throttle is smoothThrottle(dAp)  / cos(angleVsApoapsis).
-                print "ApAngle: " + round(angleVsApoapsis, 2) + " dAp: " + round(dAp, 2) + " apSpeed: " + round(apSpeed, 2)+ " gVacc: " + round(gVacc, 2) + " accLimitV: " + round(accLimitV, 2) + " accLimitH: " + round(accLimitH, 2) + " gThrust: " + round(gThrust, 2).
-                return cap(throttle, 0, 1).
+                local dApPos is CHOOSE dAp if dAp >=0 else 0.
+                local throttle_ is smoothThrottle(dApPos) / cos(angleVsApoapsis).
+                // print "ApAngle: " + round(angleVsApoapsis, 2) + " dAp: " + round(dAp, 2) + " throttle_: " + round(throttle_, 2) + " smoothThrottle(dAp): " + round(smoothThrottle(dAp), 2).
+                return CHOOSE throttle_ if dAp > 0 else 0.
             }
             lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
             LOCK STEERING TO dirup.
@@ -136,41 +140,17 @@ declare function do_lifter{
             //    print (round(attack_angle,2)) at (5,3).
             //    return true.
             //}
-            WHEN SHIP:ALTITUDE > 30000 THEN{
-                if prog_done return.
-                PRINT "ALTITUDE > 30k".
-                SET NAVMODE to "ORBIT".
-            }
+            // WHEN SHIP:ALTITUDE > 30000 THEN{
+            //     if prog_done return.
+            //     PRINT "ALTITUDE > 30k".
+            //     SET NAVMODE to "ORBIT".
+            // }
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis-100.
             if prog_done return.
-            declare local function gentle_throttle{
-                local ap_gap is dst_apoapsis - OBT:APOAPSIS.
-                local twr is 2.99e-05*ap_gap*ap_gap + 8.72e-03*ap_gap+0.0545.
-                return twr2throttle(twr).
-            }
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
             print "Apoapsis reached!".
-            LOCK THROTTLE TO cap(calc_throttle(), 0, 1).
-            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
-            lock attack_angle to 85.
             WAIT UNTIL prog_done or SHIP:ALTITUDE > 60000.
-            print "ALTITUDE > 60k".
-            wait 10.
-            // LOCK THROTTLE TO 0.
-            wait 1000.
-            if prog_done return.
-            // LOCK THROTTLE TO 0.
-            if prog_done return.
-            // LOCK STEERING TO ANGLEAXIS(-80,dirvector)*dirup.
-            print "We've got into space!".
-            IF OBT:APOAPSIS < dst_apoapsis {
-                print "Correcting APOAPSIS".
-
-                LOCK THROTTLE TO max(0.01,gentle_throttle()).
-                WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
-                if prog_done return.
-                LOCK THROTTLE TO 0.
-            }
+            print "Preparing for the maneuver".
             set ut to TIMESTAMP() + SHIP:OBT:ETA:APOAPSIS.
             set velocity_at_ap to VELOCITYAT(SHIP, ut):ORBIT:MAG.
             set circular_obt_velocity to SQRT(BODY:MU/(BODY:RADIUS+OBT:APOAPSIS)).
@@ -180,9 +160,11 @@ declare function do_lifter{
             print "DV: " + dv.
             SET circular_obt to NODE(ut, 0, 0, dv ).
             ADD circular_obt.
+            
             exec_node(circular_obt).
             stop_reading_input().
             SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+
     }
     internal.
     set prog_done to true.
