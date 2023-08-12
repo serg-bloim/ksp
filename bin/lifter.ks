@@ -11,10 +11,10 @@ declare function do_lifter{
     parameter autostart.
     local prog_done to false.
     function create_angle_func{
-        parameter h is 80000, b is 0.25, c is 2, a is 90.
+        parameter h is 80000, b is 0.25, c is 2, a is 90, off is 0.
         return {
             parameter _alt.
-            return a/(1+b*((_alt/h)^(-c) - 1)).
+            return a/(1+b*((_alt/h)^(-c) - 1)) + off.
         }.
     }
     function internal{
@@ -81,48 +81,23 @@ declare function do_lifter{
             // lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
             local dirvector to ANGLEAXIS(prograde_dir,upref) * north:forevector.
             lock dirup to ANGLEAXIS(-90,upApref) * lookDirUp(upApref, dirvector).
-            // show_vect(dirvector*5).
-            // show_vect(SHIP:UP:TOPVECTOR*10, green).
             SAS OFF.
             local dst_apoapsis is 80000.
             set angle_func to create_angle_func(dst_apoapsis).
             lock attack_angle to angle_func(SHIP:altitude).
+            local smoothThrottle is create_angle_func(500, 0.25, 2, 1, 0.05).
             function calc_throttle{
                 // return 1.
-                local dAp is dst_apoapsis - OBT:APOAPSIS.
-                local t is 10.
-                local apSpeed is apVelTracker().
-                local time2Ap is dAp / cap(apSpeed, 0.00001, 100000).
-                local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
-                local g is SHIP:BODY:MU / r / r.
-                local gravAcc is BODY:POSITION:normalized * g.
-                // local gVacc is (dAp/t).
-                local gVacc is 2 * (dAp - apSpeed * t) / t^2.
-
-                set gVacc to gVacc.
                 local angleVsApoapsis is VANG(upApref, ship:facing:forevector).
-                // local accLimitV is (gVacc - gravAcc * upApref) / cos(angleVsApoapsis).
-                local accLimitV is (cap(dAp/500, 0, 100)) / cos(angleVsApoapsis).
-                if dAp < 0{
-                    set accLimitV to 0.
-                }
-                local gHv is circularOrbDv(BODY, dst_apoapsis).
-                local dHv is gHv - ship:GROUNDSPEED.
-                set t to 1.
-                local gHacc is dHv / t.
-                local accLimitH is (gHacc) / sin(angleVsApoapsis).
-                local gThrust is accLimitV * SHIP:MASS.
-                local res is cap(accLimitV, 0, 1).
+                local dAp is dst_apoapsis - OBT:APOAPSIS.
+                local throttle is smoothThrottle(dAp)  / cos(angleVsApoapsis).
                 print "ApAngle: " + round(angleVsApoapsis, 2) + " dAp: " + round(dAp, 2) + " apSpeed: " + round(apSpeed, 2)+ " gVacc: " + round(gVacc, 2) + " accLimitV: " + round(accLimitV, 2) + " accLimitH: " + round(accLimitH, 2) + " gThrust: " + round(gThrust, 2).
-                return res.
+                return cap(throttle, 0, 1).
             }
             lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
             LOCK STEERING TO dirup.
             LOCK STEERING TO prograde_east.
             LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
-
-            print("Launch in...").
-            // countdown(3).
             local stage_cnt to 1.
             for p in SHIP:PARTSTAGGED("stage_on_empty") {
                 print "Staging part detected: " + p:NAME.
@@ -136,10 +111,11 @@ declare function do_lifter{
                     STAGE.
                 }
             }
-            
-            
+            print("Launch in...").
+            // countdown(3).
+
             STAGE.
-            LOCK THROTTLE TO cap(calc_throttle(), 0.05, 1).
+            LOCK THROTTLE TO calc_throttle().
             // UNLOCK THROTTLE.
             // wait 30.
 
