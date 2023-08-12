@@ -11,7 +11,7 @@ declare function do_lifter{
     parameter autostart.
     local prog_done to false.
     function create_angle_func{
-        parameter h is 80000, b is 0.25, c is 5, a is 90.
+        parameter h is 80000, b is 0.25, c is 2, a is 90.
         return {
             parameter _alt.
             return a/(1+b*((_alt/h)^(-c) - 1)).
@@ -78,15 +78,15 @@ declare function do_lifter{
             local apVelTracker is createApVelocityTracker().
             lock upref to up:forevector.
             lock upApref to upref.
-            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            // lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
             local dirvector to ANGLEAXIS(prograde_dir,upref) * north:forevector.
-            lock dirup to ANGLEAXIS(-90,upref) * lookDirUp(upref, dirvector).
+            lock dirup to ANGLEAXIS(-90,upApref) * lookDirUp(upApref, dirvector).
             // show_vect(dirvector*5).
             // show_vect(SHIP:UP:TOPVECTOR*10, green).
             SAS OFF.
             local dst_apoapsis is 80000.
             set angle_func to create_angle_func(dst_apoapsis).
-            lock attack_angle to angle_func(obt:apoapsis).
+            lock attack_angle to angle_func(SHIP:altitude).
             function calc_throttle{
                 // return 1.
                 local dAp is dst_apoapsis - OBT:APOAPSIS.
@@ -102,14 +102,17 @@ declare function do_lifter{
                 set gVacc to gVacc.
                 local angleVsApoapsis is VANG(upApref, ship:facing:forevector).
                 // local accLimitV is (gVacc - gravAcc * upApref) / cos(angleVsApoapsis).
-                local accLimitV is time2Ap/t.
+                local accLimitV is (cap(dAp/500, 0, 100)) / cos(angleVsApoapsis).
+                if dAp < 0{
+                    set accLimitV to 0.
+                }
                 local gHv is circularOrbDv(BODY, dst_apoapsis).
                 local dHv is gHv - ship:GROUNDSPEED.
                 set t to 1.
                 local gHacc is dHv / t.
                 local accLimitH is (gHacc) / sin(angleVsApoapsis).
-                local gThrust is min(accLimitH * SHIP:MASS,accLimitV * SHIP:AVAILABLETHRUST).
-                local res is cap(gThrust / SHIP:availableThrust, 0, 1).
+                local gThrust is accLimitV * SHIP:MASS.
+                local res is cap(accLimitV, 0, 1).
                 print "ApAngle: " + round(angleVsApoapsis, 2) + " dAp: " + round(dAp, 2) + " apSpeed: " + round(apSpeed, 2)+ " gVacc: " + round(gVacc, 2) + " accLimitV: " + round(accLimitV, 2) + " accLimitH: " + round(accLimitH, 2) + " gThrust: " + round(gThrust, 2).
                 return res.
             }
@@ -136,8 +139,9 @@ declare function do_lifter{
             
             
             STAGE.
-            LOCK THROTTLE TO calc_throttle().
-            wait 10.
+            LOCK THROTTLE TO cap(calc_throttle(), 0.05, 1).
+            // UNLOCK THROTTLE.
+            // wait 30.
 
             // set dir_east_10degree to ANGLEAXIS(-9.5,dirvector)*dirup.
             // set dir_east_10degree to lookDirUp(dir_east_10degree:forevector, ship:up:forevector).
@@ -156,10 +160,11 @@ declare function do_lifter{
             //    print (round(attack_angle,2)) at (5,3).
             //    return true.
             //}
-            WAIT UNTIL prog_done or SHIP:ALTITUDE > 30000.
-            if prog_done return.
-            PRINT "ALTITUDE > 30k".
-            SET NAVMODE to "ORBIT".
+            WHEN SHIP:ALTITUDE > 30000 THEN{
+                if prog_done return.
+                PRINT "ALTITUDE > 30k".
+                SET NAVMODE to "ORBIT".
+            }
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis-100.
             if prog_done return.
             declare local function gentle_throttle{
@@ -169,11 +174,16 @@ declare function do_lifter{
             }
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
             print "Apoapsis reached!".
+            LOCK THROTTLE TO cap(calc_throttle(), 0, 1).
+            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            lock attack_angle to 85.
+            WAIT UNTIL prog_done or SHIP:ALTITUDE > 60000.
+            print "ALTITUDE > 60k".
+            wait 10.
             // LOCK THROTTLE TO 0.
             wait 1000.
             if prog_done return.
             // LOCK THROTTLE TO 0.
-            WAIT UNTIL prog_done or SHIP:ALTITUDE > 60000.
             if prog_done return.
             // LOCK STEERING TO ANGLEAXIS(-80,dirvector)*dirup.
             print "We've got into space!".
