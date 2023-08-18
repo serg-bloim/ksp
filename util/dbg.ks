@@ -16,4 +16,9 @@ function show_vect {
     declare parameter origin is V(0,0,0).
     VECDRAW(origin,vec, color, lbl, 1, true).
 }
+FUNCTION print_lex{
+    PARAMETER obj.
+    for k in obj:keys
+        print k + " : " + obj[k].
+}
 set dbg to also_print(create_rolling_logger("/log/dbg-main.log")).

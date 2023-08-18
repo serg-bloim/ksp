@@ -15,25 +15,38 @@ set G0 to 9.80665.
 // }
 declare function get_burn_duration{
     declare parameter dv.
-    local stages is get_stages().
-    local total_burn_duration to 0.
-    local last_stage is stages[0].
-    // print stages.
-    for s in stages{
-        if s[5] > dv {set last_stage to s. break.}.
-        set dv to dv - s[5].
-        set total_burn_duration to total_burn_duration + s[6].
+    declare PARAMETER stages is list().
+    if stages:empty {
+        set stages to get_stages().
     }
+    local total_burn_duration to 0.
+    local last_stage is -1.
+    // print stages.
+    from {local it is stages:reverseiterator.} until not it:next step{} do {
+        local s is it:value.
+        if s:DV > dv {set last_stage to s. break.}.
+        set dv to dv - s:DV.
+        set total_burn_duration to total_burn_duration + s:BURN_DUR.
+    }
+    // not enough DV to execute the maneuver
+    if last_stage = -1
+        RETURN -1.
+    // for s in stages{
+    //     if s:DV > dv {set last_stage to s. break.}.
+    //     set dv to dv - s:DV.
+    //     set total_burn_duration to total_burn_duration + s:BURN_DUR.
+    // }
     // print last_stage.
-    local mymass to last_stage[0].
-    local isp to last_stage[1].
-    local thrust to last_stage[2].
+    local mymass to last_stage:MASS.
+    local isp to last_stage:ISP.
+    local thrust to last_stage:THRUST.
     local ex_vel is isp * G0.
-    local flow_rate is thrust / ex_vel.
+    print "" +  " ex_vel: " + ex_vel +  " isp: " + isp.
     local end_mass is Constant:E ^ (ln(mymass) - dv/ex_vel).
+    local flow_rate is thrust / ex_vel.
     local dm is mymass - end_mass.
     local burn_time is dm / flow_rate.
-
+    print "" + " dv: " + dv + " burn_time: " + burn_time + " dm: " + dm + " flow_rate: " + flow_rate + " ex_vel: " + ex_vel.
     set total_burn_duration to total_burn_duration + burn_time.
     return total_burn_duration.
 }
@@ -71,12 +84,15 @@ declare function exec_node{
             set total_thrust to total_thrust + e:MAXTHRUST * e:THRUSTLIMIT / 100.
         }
     }
-    local isp is total_thrust / total_fuel_consumption / G0.
-    local burn_duration is get_burn_duration(nd:deltav:mag).
-    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2).
+    // local isp is total_thrust / total_fuel_consumption / G0.
+    local stages is get_stages().
+    local burn_duration is get_burn_duration(nd:deltav:mag, stages).
+    if burn_duration = -1
+        RETURN FALSE.
+    local before_midpoint_duration is get_burn_duration(nd:deltav:mag/2, stages).
 
     print "Total thrust: " + total_thrust.
-    print "Isp: " + isp.
+    // print "Isp: " + isp.
     print "Estimated burn duration: " + round(burn_duration, 3) + "s".
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
@@ -102,6 +118,7 @@ declare function exec_node{
     if usingSas{
         SAS ON.
         wait 0.
+        unlock steering.
         set sasMode to "MANEUVER".
     }else{
         SAS OFF.
@@ -135,6 +152,7 @@ declare function exec_node{
 
     //initial deltav
     set dv0 to nd:deltav.
+    print "done = " + done.
     until done{
         //recalculate current max_acceleration, as it changes while we burn through fuel
         set max_acc to total_thrust/ship:mass.
@@ -164,6 +182,7 @@ declare function exec_node{
                 }
         wait 0.
     }
+    print "done = " + done.
     if usingSas {
         set sasMode to prevSasMode.
     }else{
@@ -177,4 +196,5 @@ declare function exec_node{
 
     //set throttle to 0 just in case.
     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+    return TRUE.
 }

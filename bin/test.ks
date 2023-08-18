@@ -1,16 +1,20 @@
 switch to 0.
 // CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 
-RUNONCEPATH("util/dbg.ks").
-clearVecDraws().
-print eta:apoapsis.
-print SHIP:position.
-local apPos is positionAt(SHIP, TIME+eta:apoapsis).
-local pePos is positionAt(SHIP, TIME+eta:periapsis).
-local apVec is positionAt(SHIP, TIME+eta:apoapsis) - BODY:position.
-show_vect(apPos, "ap", red).
-show_vect(pePos, "pe", green).
-show_vect(apVec*2, "Apoapsis", blue, BODY:position).
+RUNONCEPATH("0://util/dbg.ks").
+RUNONCEPATH("0://util/stages.ks").
+RUNONCEPATH("0://util/maneuvers.ks").
 
+CLEARSCREEN.
 
-run "bin/lifter.ks"(true).
+// for s in get_stages(){
+//     print_lex(s).
+// }
+
+// if HASNODE
+//     if exec_node(NEXTNODE)
+//         print "Success".
+//     else
+//         print "Cannot execute the maneuver".
+        
+run "bin/lifter.ks".

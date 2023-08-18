@@ -86,6 +86,7 @@ declare function do_lifter{
             lock dirup to ANGLEAXIS(-90,upApref) * lookDirUp(upApref, dirvector).
             SAS OFF.
             local dst_apoapsis is 80000.
+            set dst_apoapsis to dst_apoapsis - 1000.
             set angle_func to create_angle_func(dst_apoapsis).
             lock attack_angle to angle_func(SHIP:altitude).
             local smoothThrottle is create_angle_func(500, 0.25, 2, 1, 0.05).
@@ -145,11 +146,34 @@ declare function do_lifter{
             //     PRINT "ALTITUDE > 30k".
             //     SET NAVMODE to "ORBIT".
             // }
-            WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis-100.
+            WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
             if prog_done return.
+            print "Apoapsis - 1000 reached!".
+            WAIT UNTIL prog_done or SHIP:ALTITUDE > 40000.
+            if prog_done return.
+            PRINT "ALTITUDE > 40k".
+            PRINT "attack_angle to 85".
+            LOCK THROTTLE to twr2throttle(0.1).
+            LOCK attack_angle to 85.
+            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            
+            wait until vang(prograde_east:forevector, ship:facing:vector) < 1.
+            print "The ship is facing the right direction".
+            
+            LOCK THROTTLE TO calc_throttle().
+            set dst_apoapsis to dst_apoapsis + 1000.
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
             print "Apoapsis reached!".
-            WAIT UNTIL prog_done or SHIP:ALTITUDE > 60000.
+            LOCK attack_angle to 90.
+
+            // lock upApref to upref.
+            // local dirvector to ANGLEAXIS(prograde_dir,upref) * north:forevector.
+            // lock dirup to ANGLEAXIS(-90,upApref) * lookDirUp(upApref, dirvector).
+            // lock prograde_east to ANGLEAXIS(-attack_angle,dirvector)*dirup.
+            // LOCK STEERING TO prograde_east.
+            // show_vect(prograde_east:forevector *20).
+            WAIT UNTIL prog_done or SHIP:ALTITUDE > 50000.
+            if prog_done return.
             print "Preparing for the maneuver".
             set ut to TIMESTAMP() + SHIP:OBT:ETA:APOAPSIS.
             set velocity_at_ap to VELOCITYAT(SHIP, ut):ORBIT:MAG.
@@ -161,6 +185,8 @@ declare function do_lifter{
             SET circular_obt to NODE(ut, 0, 0, dv ).
             ADD circular_obt.
             
+            UNLOCK STEERING.
+            UNLOCK THROTTLE.
             exec_node(circular_obt).
             stop_reading_input().
             SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
