@@ -133,4 +133,9 @@ declare function stop_reading_input{
     set exit_reading_input to true.
 }
 
-
+function is_close {
+    PARAMETER a.
+    PARAMETER b.
+    PARAMETER proximity is 0.1.
+    RETURN ABS(a-b) < proximity.
+}
