@@ -1,12 +1,9 @@
 @CLOBBERBUILTINS on.
 parameter autostart is false.
-// #include "../util/maneuvers.ks"
-RUNONCEPATH("util/maneuvers.ks").
-// #include "../util/utils.ks"
-RUNONCEPATH("util/utils.ks").
-// #include "../util/dbg.ks"
-RUNONCEPATH("util/dbg.ks").
-RUNONCEPATH("util/orb.ks").
+RUNONCEPATH("0://util/maneuvers.ks").
+RUNONCEPATH("0://util/utils.ks").
+RUNONCEPATH("0://util/dbg.ks").
+RUNONCEPATH("0://util/orb.ks").
 declare function do_lifter{
     parameter autostart.
     local prog_done to false.
@@ -174,16 +171,28 @@ declare function do_lifter{
             // show_vect(prograde_east:forevector *20).
             WAIT UNTIL prog_done or SHIP:ALTITUDE > 50000.
             if prog_done return.
-            print "Preparing for the maneuver".
-            set ut to TIMESTAMP() + SHIP:OBT:ETA:APOAPSIS.
-            set velocity_at_ap to VELOCITYAT(SHIP, ut):ORBIT:MAG.
-            set circular_obt_velocity to SQRT(BODY:MU/(BODY:RADIUS+OBT:APOAPSIS)).
-            set dv to circular_obt_velocity-velocity_at_ap.
-            print "velocity at AP: " + velocity_at_ap.
-            print "required velocity at AP: " + circular_obt_velocity.
-            print "DV: " + dv.
-            SET circular_obt to NODE(ut, 0, 0, dv ).
+            local time_till_burn is 99999.
+            LOCK attack_angle to 89.
+            SET circular_obt to NODE(TIME + 100, 0, 0, 10).
             ADD circular_obt.
+            until time_till_burn < 15{
+                print "Preparing for the maneuver".
+                LOCK THROTTLE TO calc_throttle().
+                wait 5.
+                LOCK THROTTLE TO 0.
+                remove circular_obt.
+                set ut to TIMESTAMP() + SHIP:OBT:ETA:APOAPSIS.
+                set velocity_at_ap to VELOCITYAT(SHIP, ut):ORBIT:MAG.
+                set circular_obt_velocity to circularOrbDv(OBT:apoapsis).
+                set dv to circular_obt_velocity-velocity_at_ap.
+                SET circular_obt to NODE(ut, 0, 0, dv ).
+                ADD circular_obt.
+                set time_till_burn to circular_obt:ETA - get_burn_duration(dv/2).
+                print "velocity at AP: " + velocity_at_ap.
+                print "required velocity at AP: " + circular_obt_velocity.
+                print "DV: " + dv.
+                print "time_till_burn: " + time_till_burn.
+            }
             
             UNLOCK STEERING.
             UNLOCK THROTTLE.

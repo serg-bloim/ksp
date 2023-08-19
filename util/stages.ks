@@ -1,7 +1,4 @@
 function get_stages{
-    lock throttle to 0.
-    wait 0.
-    
     // the ultimate product of the program
     // will contain lists of data about each stage
     

@@ -41,12 +41,12 @@ declare function get_burn_duration{
     local isp to last_stage:ISP.
     local thrust to last_stage:THRUST.
     local ex_vel is isp * G0.
-    print "" +  " ex_vel: " + ex_vel +  " isp: " + isp.
+    // print "" +  " ex_vel: " + ex_vel +  " isp: " + isp.
     local end_mass is Constant:E ^ (ln(mymass) - dv/ex_vel).
     local flow_rate is thrust / ex_vel.
     local dm is mymass - end_mass.
     local burn_time is dm / flow_rate.
-    print "" + " dv: " + dv + " burn_time: " + burn_time + " dm: " + dm + " flow_rate: " + flow_rate + " ex_vel: " + ex_vel.
+    // print "" + " dv: " + dv + " burn_time: " + burn_time + " dm: " + dm + " flow_rate: " + flow_rate + " ex_vel: " + ex_vel.
     set total_burn_duration to total_burn_duration + burn_time.
     return total_burn_duration.
 }
@@ -96,7 +96,6 @@ declare function exec_node{
     print "Estimated burn duration: " + round(burn_duration, 3) + "s".
     print "Node ETA : " + nd:eta.
     print "Time to burn : " + (nd:eta - before_midpoint_duration) .
-    KUniverse:PAUSE().
     local warp_enabled to false.
     on chars_read_num{
         local ch to last_read_char:tolower().

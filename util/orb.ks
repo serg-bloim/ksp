@@ -1,6 +1,6 @@
 @CLOBBERBUILTINS on.
 function circularOrbDv{
-    parameter body.
     parameter alt.
+    parameter body is ship:body.
     return SQRT(body:MU/(body:RADIUS+alt)).
 }
