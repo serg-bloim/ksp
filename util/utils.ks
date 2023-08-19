@@ -1,13 +1,12 @@
-@CLOBBERBUILTINS on.
 declare function cap{
     parameter val.
-    parameter min is 0.
-    parameter max is 0.
-    if val < min{
-        return min.
+    parameter _min is 0.
+    parameter _max is 0.
+    if val < _min{
+        return _min.
     }
-    if val > max{
-        return max.
+    if val > _max{
+        return _max.
     }
     return val.
 }
@@ -33,12 +32,12 @@ declare function esc_pressed{
 }
 declare function twr2throttle{
     parameter twr.
-    local maxthrust is SHIP:AVAILABLETHRUST.
-    if maxthrust = 0{
+    local _maxthrust is SHIP:AVAILABLETHRUST.
+    if _maxthrust = 0{
         return 0.
     }
-    local r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
-    local weight is SHIP:MASS * SHIP:BODY:MU / r / r.
+    local _r is SHIP:ALTITUDE+SHIP:BODY:RADIUS.
+    local weight is SHIP:MASS * SHIP:BODY:MU / _r / _r.
     local thrust is twr * weight.
     return thrust / SHIP:AVAILABLETHRUST.
 }

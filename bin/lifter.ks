@@ -1,4 +1,3 @@
-@CLOBBERBUILTINS on.
 parameter autostart is false.
 RUNONCEPATH("0://util/maneuvers.ks").
 RUNONCEPATH("0://util/utils.ks").
