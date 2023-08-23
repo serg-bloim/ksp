@@ -1,5 +1,5 @@
 switch to 0.
-// CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
+CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
 
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/stages.ks").
@@ -7,14 +7,14 @@ RUNONCEPATH("0://util/maneuvers.ks").
 
 CLEARSCREEN.
 
-// for s in get_stages(){
-//     print_lex(s).
+print "start".
+// dbg(build_fuel_clusters()).
+// local stages is get_stages().
+// dbg("get_stages() = ").
+// for s in stages{
+//     dbg(lex2str(s)).
 // }
-
-// if HASNODE
-//     if exec_node(NEXTNODE)
-//         print "Success".
-//     else
-//         print "Cannot execute the maneuver".
-        
-run "bin/lifter.ks".
+wait until HASNODE.
+print "got a node".
+run "bin/nodexec.ks".
+print "done".

@@ -22,6 +22,7 @@ declare function countdown{
     PRINT "0".
 }
 global ESC is CHAR(27).
+global NL is CHAR(10).
 declare function wait_until_esc{
     until terminal:input:getchar = ESC{
 
@@ -138,4 +139,29 @@ function is_close {
     PARAMETER b.
     PARAMETER proximity is 0.1.
     RETURN ABS(a-b) < proximity.
+}
+
+FUNCTION new_list{
+    parameter size, _v is 0.
+    LOCAL lst is LIST().
+    until size = 0 {
+        lst:add(_v).
+        set size to size - 1.
+    }
+    RETURN lst.
+}
+
+FUNCTION merge_num_lex{
+    PARAMETER lex1, lex2.
+    for k in lex2:keys{
+        set lex1[k] to lex1[k] + lex2[k].
+    }
+}
+
+function lex2str {
+    PARAMETER obj.
+    local str is "".
+    for k in obj:keys
+        set str to str + (k + " : " + obj[k]) + NL.
+    RETURN str.
 }

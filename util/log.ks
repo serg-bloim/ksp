@@ -42,7 +42,18 @@ declare function create_rolling_logger{
     }
     return {
         parameter msg.
-        log "[" + TIME:calendar + " " + time:clock + "] " + msg to path.
+        log "[" + TIME:calendar + " " + time:clock + "] " + msg to fpath.
+    }.
+}
+declare function create_simple_logger{
+    parameter fpath.
+    parameter print_time is true.
+    if exists(fpath){
+        OPEN(fpath):CLEAR.
+    }
+    return {
+        parameter msg.
+        log "[" + TIME:calendar + " " + time:clock + "] " + msg to fpath.
     }.
 }
 declare function also_print{

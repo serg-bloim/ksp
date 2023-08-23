@@ -21,4 +21,4 @@ FUNCTION print_lex{
     for k in obj:keys
         print k + " : " + obj[k].
 }
-set dbg to also_print(create_rolling_logger("/log/dbg-main.log")).
+set dbg to also_print(create_simple_logger("log/dbg-main.log")).
