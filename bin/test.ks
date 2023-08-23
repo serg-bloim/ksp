@@ -14,7 +14,11 @@ print "start".
 // for s in stages{
 //     dbg(lex2str(s)).
 // }
-wait until HASNODE.
-print "got a node".
-run "bin/nodexec.ks".
+// SAS OFF.
+// print "Enable SAS to start".
+// wait until SAS.
+// SAS OFF.
+STAGE.
+run "bin/descend.ks".
+// run "bin/lifter.ks".
 print "done".
