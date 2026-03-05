@@ -14,10 +14,9 @@ wait until is_close(CUR_LNG, init_lng, 1).
 SET descend_node to NODE(TIME + 5, 0, 0, -100 ).
 ADD descend_node.
 exec_node(descend_node).
-SAS ON.
-wait 0.
-SET SASMODE to "RETROGRADE".
-
+SAS OFF.
+lock steering_angle to cap(home_coords:bearing,-5,5).
+lock STEERING to SHIP:srfretrograde * R(0,-steering_angle,0).
 function stage_all{
     until stage:number = 0 {
         stage.

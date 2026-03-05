@@ -18,7 +18,10 @@ print "start".
 // print "Enable SAS to start".
 // wait until SAS.
 // SAS OFF.
+dbg(get_stages()).
+wait 999.
 STAGE.
+
 run "bin/descend.ks".
 // run "bin/lifter.ks".
 print "done".

@@ -150,14 +150,12 @@ function get_stages{
                 }
                 set cluster_burntime to 9999999999.
                 for res in cluster:keys{
-                    dbg("cluster[res] : " + cluster[res]).
                     set stage_fuel_mass_total to stage_fuel_mass_total + cluster[res] * resspec[res]:DENSITY.
                     if consumption[res] > 0{
                         set cluster_burntime to MIN(cluster_burntime, cluster[res]/consumption[res]).
                     }
 
                 }
-                dbg("cluster_burntime : " + cluster_burntime).
                 if cluster_burntime = 9999999999
                     set cluster_burntime to 0.
                 set cfg:burntime to cluster_burntime.

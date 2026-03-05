@@ -17,7 +17,7 @@ declare function do_lifter{
         }.
     }
     function internal{
-            // CLEARSCREEN.
+            CLEARSCREEN.
             clearVecDraws().
             start_reading_input().
             local prograde_dir to 3.
@@ -99,17 +99,16 @@ declare function do_lifter{
             LOCK STEERING TO dirup.
             LOCK STEERING TO prograde_east.
             LOCK THROTTLE TO twr2throttle(2.87e-05 * SHIP:ALTITUDE + 0.95).
-            local stage_cnt to 1.
-            for p in SHIP:PARTSTAGGED("stage_on_empty") {
-                print "Staging part detected: " + p:NAME.
-                local res is p:RESOURCES[0].
-                local stage_iter to stage_cnt.
-                set stage_cnt to stage_cnt + 1.
-                WHEN res:AMOUNT < 0.01 THEN{
+            for part in SHIP:PARTSTAGGED("stage_on_empty") {
+                print "Staging part detected: " + part.
+                                local res is part:resources[0].
+                
+                WHEN res:AMOUNT < 0.01 and stage:number > part:separatedin THEN{
                     IF prog_done {return false.}
                     WAIT 0.1.
-                    print "Staging " + stage_iter.
+                    print "Staging " + part:separatedin.
                     STAGE.
+                    return true.
                 }
             }
             print("Launch in...").
