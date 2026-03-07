@@ -1,2 +1,3 @@
 switch to 0.
-run "bin/test.ks".
+CORE:PART:GETMODULE("kOSProcessor"):DOEVENT("Open Terminal").
+run "test/dispatch.ks".

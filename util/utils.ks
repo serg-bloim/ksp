@@ -165,3 +165,54 @@ function lex2str {
         set str to str + (k + " : " + obj[k]) + NL.
     RETURN str.
 }
+
+declare function bisect_search{
+    PARAMETER func.
+    PARAMETER goal.
+    PARAMETER eps.
+    PARAMETER x0.
+    PARAMETER dx.
+    PARAMETER max_iters is 10.
+    local x is x0.
+    print "Goal: " + goal + " x0: " + x0 + " eps: " + eps.
+    local y is func(x).
+    local dist is abs(y - goal).
+    local dy is 0.
+    local dxx is 2.
+    local overjumps is 0.
+
+    FROM {local iter is 0.} UNTIL iter = max_iters STEP {set iter to iter + 1.} DO {
+        IF dist < eps {
+            print "FOUND solution f(" + x + ") = " + y.
+            RETURN x.
+        }
+        local xn to x + dx.
+        local yn is func(xn).
+        local dist_n is abs(yn - goal).
+        IF dist_n < dist {
+            //keep direction
+            set dx to dx * dxx.
+        } ELSE {
+            //change direction
+            set dx to dx / -4.
+            set overjumps to overjumps + 1.
+            if overjumps = 2{
+                set dxx to 1.
+            }
+            print "Overjumped".
+        }
+        print   "BISECT ITER : " + iter + 
+                " x: " + x + 
+                " y: " + y + 
+                " dx: " + dx +
+                " xn: " + xn + 
+                " yn: " + yn + 
+                " dist: " + dist + 
+                " dist_n: " + dist_n.
+        set y to yn.
+        set x to xn.
+        set dist to dist_n.
+    }
+    PRINT "Out of iterations".
+    RETURN X.
+}
