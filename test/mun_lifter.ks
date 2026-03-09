@@ -201,4 +201,4 @@ declare function do_lifter{
     SAS ON.
     print "DONE".
 }
-do_lifter(autostart).
+// do_lifter(autostart).

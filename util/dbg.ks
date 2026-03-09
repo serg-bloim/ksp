@@ -2,12 +2,13 @@
 RUNONCEPATH("util/log.ks").
 function show_rot {
     declare parameter rot.
-    set front to rot:vector*1000.
-    set up1 to rot:upvector*500.
-    set right to rot:STARVECTOR*500.
-    VECDRAW(V(0,0,0),front, red, "fore", 1, true).
-    VECDRAW(V(0,0,0),up1, blue, "up", 1, true).
-    VECDRAW(V(0,0,0),right, green, "right", 1, true).
+    PARAMETER origin is V(0,0,0).
+    set front to rot:vector*1000000.
+    set up1 to rot:upvector*500000.
+    set right to rot:STARVECTOR*500000.
+    VECDRAW(origin,front, red, "fore", 1, true).
+    VECDRAW(origin,up1, blue, "up", 1, true).
+    VECDRAW(origin,right, green, "right", 1, true).
 }
 function show_vect {
     declare parameter vec.

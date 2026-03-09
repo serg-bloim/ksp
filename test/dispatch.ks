@@ -1,3 +1,4 @@
 // run "/test/record-flight-data.ks".
 // run "/test/precise_turn_test.ks".
-run "/test/randevouz.ks".
+// run "/test/orbital.ks".
+run "/test/randevous.ks".

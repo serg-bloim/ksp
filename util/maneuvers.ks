@@ -197,3 +197,10 @@ declare function exec_node{
     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
     return TRUE.
 }
+
+function remove_all_nodes{
+    UNTIL NOT HASNODE {
+        REMOVE NEXTNODE.
+        wait 0.
+    }
+}
