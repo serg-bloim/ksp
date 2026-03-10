@@ -1,5 +1,6 @@
 RUNONCEPATH("/util/utils.ks").
 RUNONCEPATH("/util/stages.ks").
+RUNONCEPATH("/util/orb.ks").
 set G0 to 9.80665.
 // declare function get_burn_duration{
 //     declare parameter dv.
@@ -203,4 +204,44 @@ function remove_all_nodes{
         REMOVE NEXTNODE.
         wait 0.
     }
+}
+function create_maneuver_deltav{
+    PARAMETER T, dv.
+    local orbV is VELOCITYAT(SHIP, T):ORBIT.
+    local upV is -getOrbitNormal(SHIP:ORBIT).
+    local dir is LOOKDIRUP(orbV, upV).
+
+    local prog is dv * dir:FOREVECTOR.
+    local norm is dv * dir:TOPVECTOR.
+    local rad is dv * dir:STARVECTOR.
+    ADD NODE(T, rad, norm, prog).
+}
+
+
+function create_maneuver_deltav2{
+    PARAMETER T, dv.
+    local vel is VELOCITYAT(SHIP, T):ORBIT.
+    local orbRef is VXCL(vel, dv):NORMALIZED * dv:MAG.
+    ADD NODE(T, orbRef:X, orbRef:Y, orbRef:Z).
+
+}
+
+function visualize_node{
+    if NOT HASNODE {RETURN.}
+    local n is NEXTNODE.
+    local dv is n:DELTAV.
+    local orbV is VELOCITYAT(SHIP, n:TIME-0.1):ORBIT.
+    local upV is getOrbitNormal(SHIP:ORBIT).
+    local dir is LOOKDIRUP(orbV, upV).
+    local orbRef is VXCL(orbV, dv):NORMALIZED * dv:MAG.
+    local p is dv * dir:FOREVECTOR.
+    local norm is dv * dir:TOPVECTOR.
+    local rad is dv * dir:STARVECTOR.
+    local origin is POSITIONAT(SHIP, n:TIME-0.01).
+    print "Origin: " + origin.
+    // RETURN.
+    show_vect(dir:FOREVECTOR*p * 1000, "prog: "+r2(p), red, origin).
+    show_vect(dir:TOPVECTOR*norm * 1000, "norm: "+r2(norm), green, origin).
+    show_vect(dir:STARVECTOR*rad * 1000, "rad: "+r2(rad), blue, origin).
+    show_vect(dv * 1000, "dv: "+r2(dv:MAG), purple, origin).
 }
