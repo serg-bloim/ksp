@@ -10,7 +10,7 @@ function descend{
     PARAMETER eps is 0.1.
     PARAMETER max_iters is 5.
     PARAMETER max_piters is 10.
-    local CMP_EPS is 0.1.
+    local CMP_EPS is 0.001.
     if dx:length = 0{
         set dx to map({PARAMETER x. RETURN 1.}, x0).
     }
@@ -26,6 +26,7 @@ function descend{
             print "too many iterations".
             RETURN xs.
         }
+        local modifications is FALSE.
         FROM {local pi is 0.} UNTIL pi = xs:LENGTH STEP {set pi to pi + 1.} DO {
             print "Iter " + iter + "." + pi.
             local a is xs[pi].
@@ -55,9 +56,7 @@ function descend{
                 IF ABS(right_dv) < CMP_EPS AND ABS(left_dv) < CMP_EPS{
                     print "EXIT COND 1".
                     BREAK.
-                } ELSE IF ABS(right_dv) < CMP_EPS OR ABS(left_dv) < CMP_EPS{
-
-                } ELSE IF right_dv > CMP_EPS AND left_dv > CMP_EPS {
+                } ELSE IF (right_dv > CMP_EPS AND left_dv > CMP_EPS) OR ABS(right_dv) < CMP_EPS OR ABS(left_dv) < CMP_EPS {
                     // min is between a - da and a + da, no need to expand the range.
                     print "FOUND RANGE --- ".
                     IF da < eps{
@@ -78,9 +77,14 @@ function descend{
             //         print xs.
             //         print center_v.
                 }
+                set modifications to TRUE.
             }
             set xs[pi] to a.
             set dx[pi] to da.
+        }
+        IF NOT MODIFICATIONS {
+            print "FOUND SOLUTION".
+            RETURN xs.
         }
     }
 }
