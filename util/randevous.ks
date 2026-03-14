@@ -156,46 +156,6 @@ declare function do_randevous{
       descend1d(randevous_gap@, NEXTNODE:TIME).
     }
 
-    // function find_prograde{
-    //     local starting_alt is (SHIP:ORBIT:apoapsis + SHIP:orbit:periapsis) / 2.
-    //     local target_alt is (TRGT:ORBIT:apoapsis + TRGT:orbit:periapsis) / 2.
-    //     LOCAL myNode TO NEXTNODE.
-
-    //     print "starting_alt: " + starting_alt.
-    //     local f_prograde to {
-    //         PARAMETER X.
-    //         set myNode:PROGRADE to X.
-    //         wait 0.
-    //         if abs(starting_alt - myNode:orbit:apoapsis) > abs(starting_alt - myNode:orbit:periapsis) {
-    //             RETURN myNode:orbit:apoapsis.
-    //         }ELSE{
-    //             RETURN myNode:orbit:periapsis.
-    //         }
-    //     }.
-    //     bisect_search(f_prograde, target_alt, 400, 0, 1, 20).
-    // }
-    // function find_transfer_start_time{
-    //     local myNode TO NEXTNODE.
-    //     local transfer_dt is myNode:ORBIT:PERIOD / 2.
-    //     print "transfer_dt: " + transfer_dt.
-    //     local f_approach to {
-    //         PARAMETER T.
-    //         set myNode:TIME to T.
-    //         wait 0.
-    //         RETURN (POSITIONAT(SHIP, T + transfer_dt) - POSITIONAT(TRGT, T + transfer_dt)):MAG.
-    //     }.
-    //     local t0 is TIMESTAMP():SECONDS + 30.
-    //     local transfer_t0 is bisect_search(f_approach, 0, 400, t0, 1, 50).
-    //     if transfer_t0 < TIME:seconds {
-    //         local sync_T is 1 / abs(1/SHIP:ORBIT:PERIOD - 1/TRGT:ORBIT:PERIOD).
-    //         print "The transfer start is in the past, needs to add the orbits sync period (" + sync_T + ")".
-    //         set transfer_t0 to transfer_t0 + sync_T.
-    //     }
-    //     print "Now T: " + TIME:SECONDS.
-    //     print "Transfer start T: " + transfer_t0.
-    //     print "Interception T: " + (transfer_t0 + transfer_dt).
-    //     set NEXTNODE:TIME to transfer_t0.
-    // }
     function complete_transfer{
         local T_x is NEXTNODE:TIME + NEXTNODE:ORBIT:PERIOD/2.
         local trgt_v is VELOCITYAT(TRGT, T_x):ORBIT.
@@ -207,8 +167,7 @@ declare function do_randevous{
     print "Align orbit inclination".
     align_orbits().
     exec_node(NEXTNODE).
-    REMOVE NEXTNODE.
-    wait 0.
+    remove_next_node().
 
     print "Sync orbits".
     local sync_orbs is create_sync_node().
@@ -220,8 +179,7 @@ declare function do_randevous{
     print "Complete the transfer".
     complete_transfer().
     exec_node(NEXTNODE).
-    REMOVE NEXTNODE.
-    wait 0.
+    remove_next_node().
     exec_node(NEXTNODE).
 
     // Here we can wait till the last syncing orbit and if we accumulated any error, we can adjust for it by changing the last lap period.

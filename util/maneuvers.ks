@@ -198,11 +198,13 @@ declare function exec_node{
     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
     return TRUE.
 }
-
+function remove_next_node{
+    REMOVE NEXTNODE.
+    wait 0.
+}
 function remove_all_nodes{
     UNTIL NOT HASNODE {
-        REMOVE NEXTNODE.
-        wait 0.
+        remove_next_node().
     }
 }
 function create_maneuver_deltav{
