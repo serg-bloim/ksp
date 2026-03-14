@@ -23,6 +23,10 @@ declare function do_randevous{
             RETURN 1000*VANG(trgOrbNorm, nodeOrbNorm).
         }
         local maneuver_time is descend(apply2p(node_time@), LIST(TIME:seconds,0))[0].
+        IF maneuver_time < TIME:SECONDS {
+            print "Node is in the past".
+            set maneuver_time to descend(apply2p(node_time@), LIST(maneuver_time + SHIP:ORBIT:PERIOD / 2, 0))[0].
+        }
         REMOVE NEXTNODE.
         // Calculate the desired velocity we need to achieve at the AN/DN node so the orbit aligns with the target orbit.
         // We need to rotate the velocity vector for the same rotate as from the current normal to the target normal.
@@ -199,22 +203,21 @@ declare function do_randevous{
         local dv is trgt_v - ship_v.
         create_maneuver_deltav(T_x, dv).
     }
-    // remove_all_nodes().
+    remove_all_nodes().
     print "Align orbit inclination".
-    // align_orbits().
-    // exec_node(NEXTNODE).
+    align_orbits().
+    exec_node(NEXTNODE).
+    REMOVE NEXTNODE.
+    wait 0.
 
     print "Sync orbits".
-    wait 5.
     local sync_orbs is create_sync_node().
     IF sync_orbs > 0 {
         exec_node(NEXTNODE).
     }
     print "Transfer to the target orbit".
-    wait 5.
     create_transfer_node().
     print "Complete the transfer".
-    wait 5.
     complete_transfer().
     exec_node(NEXTNODE).
     REMOVE NEXTNODE.
