@@ -4,5 +4,6 @@ RUNONCEPATH("0://util/orb.ks").
 RUNONCEPATH("0://app/body_lift.ks").
 
 local app to create_app_body_lift().
-
+set app:cfg:ALT to 30000.
+set app:cfg:AUTOSTART to FALSE.
 app:run().
