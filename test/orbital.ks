@@ -4,23 +4,31 @@ RUNONCEPATH("0://util/orb.ks").
 print "Hello".
 
 until FALSE {
+    lock myOrb to SHIP:ORBIT.
     CLEARVECDRAWS().
-    local myOrb is SHIP:ORBIT.
-    local trgOrb is TARGET:ORBIT.
-    local mag is myOrb:BODY:RADIUS * 2.
-    local myOrbNorm is getOrbitNormal(myOrb).
-    local trgOrbNorm is getOrbitNormal(trgOrb).
-    local anDir is getAscendingNodeDirection(myOrb, trgOrb).
-    local shipDir is getOrbitableDirection(SHIP).
-    // show_vect(myOrbNorm * mag, "SHIP", red, myOrb:BODY:POSITION).
-    // show_vect(trgOrbNorm * mag, "TRG", green, myOrb:BODY:POSITION).
-    // show_vect(anDir:FOREVECTOR * mag, "AN", red, myOrb:BODY:POSITION).
-    show_rot(shipDir, myOrb:BODY:POSITION).
-    show_rot(anDir, myOrb:BODY:POSITION).
-    local ship2an is anDir * shipDir:inverse.
-    print ship2an.
-    print angleBetweenDirs(shipDir, anDir).
+    // show_rot(getOrbitPeDir(myOrb), myOrb:BODY:POSITION).
+    // local tu is angleBetweenDirs(getOrbitPeDir(myOrb), getOrbitableDirection(SHIP)).
+    // print "getOrbRadiusByDir() = " + getOrbRadiusByDir(myOrb, -myOrb:BODY:POSITION) + " getOrbAltByDir=" + getOrbAltByDir(myOrb, -myOrb:BODY:POSITION).
+    // local poss is LIST().
+    // FROM {local i is 1.} UNTIL i >1 STEP {set i to i + 1.} DO {
+    //     poss:ADD(POSITIONAT(SHIP, TIME:SECONDS + SHIP:ORBIT:ETA:PERIAPSIS + 100* i * SHIP:ORBIT:PERIOD)).
+    //     print i.
+    // }
+    local time_in_1orb is TIME:SECONDS + 1 * SHIP:ORBIT:PERIOD.
+    local time_in_1000orb is TIME:SECONDS + 1000 * SHIP:ORBIT:PERIOD.
+    local pos_in_1_orbs is POSITIONAT(SHIP, time_in_1orb).
+    local pos_in_1000_orbs is POSITIONAT(SHIP, time_in_1000orb).
+    print pos_in_1_orbs.
+    print pos_in_1000_orbs.
+    print "dist = " + (pos_in_1000_orbs - pos_in_1_orbs):MAG.
+
+    VECDRAW(V(0,0,0), pos_in_1000_orbs, red, "", 1, true).
+    // for p in poss {
+        // show_vect(p).
+    //             print p.
+    // }
+    // print angleBetweenDirs(shipDir, anDir).
     // print angleBetweenDirs(anDir, shipDir).
-    wait 0.5.
+    wait 2.
 }
 

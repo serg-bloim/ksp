@@ -3,7 +3,7 @@ RUNONCEPATH("0://util/maneuvers.ks").
 RUNONCEPATH("0://util/utils.ks").
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/orb.ks").
-declare function do_lifter{
+declare function mun_lifter{
     parameter autostart.
     local prog_done to false.
     function create_angle_func{
@@ -82,7 +82,7 @@ declare function do_lifter{
             lock dirup to ANGLEAXIS(-90,upApref) * lookDirUp(upApref, dirvector).
             SAS OFF.
             local dst_apoapsis is 30000.
-            set dst_apoapsis to dst_apoapsis - 1000.
+            set dst_apoapsis to dst_apoapsis - 200.
             set angle_func to create_angle_func(dst_apoapsis, 0.01).
             lock attack_angle to angle_func(SHIP:altitude).
             local smoothThrottle is create_angle_func(500, 0.25, 2, 1, 0.05).
@@ -129,7 +129,7 @@ declare function do_lifter{
             // LOCK STEERING TO dir_east_10degree.
             WAIT UNTIL prog_done or SHIP:ALTITUDE > 500.
             if prog_done return.
-            PRINT "ALTITUDE > 10k".
+            PRINT "ALTITUDE > 500".
             // LOCK THROTTLE TO twr2throttle(10).
 
             //ON attack_angle{
@@ -144,17 +144,23 @@ declare function do_lifter{
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
             if prog_done return.
             print "Apoapsis - 1000 reached!".
-            PRINT "attack_angle to 85".
-            LOCK THROTTLE to twr2throttle(0.1).
-            LOCK attack_angle to 85.
-            lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            PRINT "attack_angle to 110".
+            LOCK THROTTLE to 0.
+            // lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            LOCK THROTTLE to twr2throttle(0.3).
+            set dst_apoapsis to dst_apoapsis + 180.
+            WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
+            if prog_done return.
+            print "Apoapsis - 20 reached!".
+            // lock upApref to (positionAt(SHIP, TIME+eta:apoapsis) - BODY:position):normalized.
+            LOCK THROTTLE to twr2throttle(0.01).
             
             wait until vang(prograde_east:forevector, ship:facing:vector) < 1.
             print "The ship is facing the right direction".
-            
-            LOCK THROTTLE TO calc_throttle().
-            set dst_apoapsis to dst_apoapsis + 1000.
+
+            set dst_apoapsis to dst_apoapsis + 20.
             WAIT UNTIL prog_done or OBT:APOAPSIS > dst_apoapsis.
+            LOCK THROTTLE to 0.
             print "Apoapsis reached!".
             LOCK attack_angle to 90.
 

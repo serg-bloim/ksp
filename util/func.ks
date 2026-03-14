@@ -28,7 +28,7 @@ function descend{
         }
         local modifications is FALSE.
         FROM {local pi is 0.} UNTIL pi = xs:LENGTH STEP {set pi to pi + 1.} DO {
-            print "Iter " + iter + "." + pi.
+            // print "Iter " + iter + "." + pi.
             local a is xs[pi].
             local da is dx[pi].
             // local center_v is func(xs).
@@ -44,23 +44,23 @@ function descend{
             local piter is 0.
             until piter > max_piters {
                 set piter to piter + 1.
-                set xs[pi] to a.
-                local center_v is func(xs).
                 set xs[pi] to a - da.
                 local left_v is func(xs).
                 set xs[pi] to a + da.
                 local right_v is func(xs).
+                set xs[pi] to a.
+                local center_v is func(xs).
                 local left_dv is left_v - center_v.
                 local right_dv is right_v - center_v.
-                print "pi_"+piter + " a=" + r2(a) + " da=" + r2(da) + " left=" + r2(left_v) + " center=" + r2(center_v) + " right=" + r2(right_v).
+                // print "pi_"+piter + " a=" + r2(a) + " da=" + r2(da) + " left=" + r2(left_v) + " center=" + r2(center_v) + " right=" + r2(right_v).
                 IF ABS(right_dv) < CMP_EPS AND ABS(left_dv) < CMP_EPS{
-                    print "EXIT COND 1".
+                    // print "EXIT COND 1".
                     BREAK.
                 } ELSE IF (right_dv > CMP_EPS AND left_dv > CMP_EPS) OR ABS(right_dv) < CMP_EPS OR ABS(left_dv) < CMP_EPS {
                     // min is between a - da and a + da, no need to expand the range.
-                    print "FOUND RANGE --- ".
+                    // print "FOUND RANGE --- ".
                     IF da < eps{
-                        print "EXIT COND 2".
+                        // print "EXIT COND 2".
                         BREAK.
                     }
                     set da to da / 4.
@@ -83,10 +83,25 @@ function descend{
             set dx[pi] to da.
         }
         IF NOT MODIFICATIONS {
-            print "FOUND SOLUTION".
+            // print "FOUND SOLUTION".
             RETURN xs.
         }
     }
+}
+function descend1d{
+    PARAMETER func.
+    PARAMETER x0.
+    PARAMETER dx is 1.
+    PARAMETER eps is 0.1.
+    PARAMETER max_iters is 10.
+    return descend(apply1p(func), List(x0), List(dx), eps, 2, max_iters)[0].
+}
+function apply1p{
+    PARAMETER func.
+    RETURN {
+        PARAMETER lst.
+        RETURN func(lst[0]).
+    }.
 }
 function apply2p{
     PARAMETER func.
@@ -99,6 +114,6 @@ function apply3p{
     PARAMETER func.
     RETURN {
         PARAMETER lst.
-        RETURN func(lst[0], lst[1], lst[1]).
+        RETURN func(lst[0], lst[1], lst[2]).
     }.
 }

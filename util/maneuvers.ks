@@ -219,6 +219,7 @@ function create_maneuver_deltav{
 
 
 function create_maneuver_deltav2{
+    // TODO: remove the function
     PARAMETER T, dv.
     local vel is VELOCITYAT(SHIP, T):ORBIT.
     local orbRef is VXCL(vel, dv):NORMALIZED * dv:MAG.
