@@ -1,16 +1,19 @@
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/dir.ks").
-RUNONCEPATH("0://util/orb.ks").
-RUNONCEPATH("0://app/body_lift.ks").
-RUNONCEPATH("0://app/randevous.ks").
+RUNONCEPATH("0://util/func.ks").
 
-// local app to create_app_body_lift().
-// set app:cfg:ALT to 30000.
-// set app:cfg:AUTOSTART to FALSE.
-// app:run().
-
-
-local app to create_app_randevous().
-set app:cfg:target to TARGET.
-set app:cfg:AUTOSTART to FALSE.
-app:run().
+UNTIL FALSE {
+    function find_landing_time{
+        PARAMETER T.
+        local pos is POSITIONAT(SHIP, T).
+        local _alt is (SHIP:BODY:POSITION - pos):MAG - SHIP:BODY:RADIUS.
+        // print _alt.
+        RETURN ABS(_alt).
+    }
+    local landing_ts is descend1d(find_landing_time@, NEXTNODE:TIME+10, 100, 1, 100).
+    print "Landing in " + r2(landing_ts - NEXTNODE:TIME) + " s. at " + r2(landing_ts) + " s.".
+    local landing is POSITIONAT(SHIP, landing_ts).
+    CLEARVECDRAWS().
+    show_vect(landing*1.5,"", red, SHIP:BODY:POSITION).
+    WAIT 10.
+}

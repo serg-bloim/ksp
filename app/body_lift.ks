@@ -1,5 +1,5 @@
 RUNONCEPATH("0://util/app.ks").
-RUNONCEPATH("0://util/maneuvers.ks").
+RUNONCEPATH("0://app/maneuvers.ks").
 RUNONCEPATH("0://util/utils.ks").
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/orb.ks").
@@ -8,6 +8,7 @@ function create_app_body_lift{
         local cfg is LEXICON().
         set cfg:ALT to 100000.
         set cfg:DIR to 0.
+        set cfg:warp_all_transfers to FALSE.
         set cfg:AUTOSTART to TRUE.
         set cfg:COUNTDOWN to 3.
         RETURN cfg.
@@ -177,7 +178,10 @@ function create_app_body_lift{
         
         UNLOCK STEERING.
         UNLOCK THROTTLE.
-        exec_node(circular_obt).
+        create_exec_next_node():setters
+            :remove_node(TRUE)
+            :auto_warp(app:cfg:warp_all_transfers)
+            :app:run().
         stop_reading_input().
         SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
     }

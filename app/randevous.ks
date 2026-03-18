@@ -1,5 +1,5 @@
 RUNONCEPATH("0://util/app.ks").
-RUNONCEPATH("0://util/maneuvers.ks").
+RUNONCEPATH("0://app/maneuvers.ks").
 RUNONCEPATH("0://util/utils.ks").
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/orb.ks").
@@ -10,6 +10,7 @@ function create_app_randevous{
         set cfg:target to FALSE.
         set cfg:intercept_at_target_true_anomaly to 0.
         set cfg:desired_dist_to_target to 200.
+        set cfg:warp_all_transfers to FALSE.
         set cfg:AUTOSTART to TRUE.
         set cfg:COUNTDOWN to 3.
         RETURN cfg.
@@ -18,6 +19,10 @@ function create_app_randevous{
         PARAMETER app.
         local TRGT is app:cfg:target.
         RCS OFF.
+        local exec_next_node is create_exec_next_node():setters
+            :remove_node(TRUE)
+            :auto_warp(app:cfg:warp_all_transfers)
+            :app:run@.
         local targetOrbInterceptionTrueAnomaly is app:cfg:intercept_at_target_true_anomaly.
         start_reading_input().
         function align_orbits{
@@ -49,7 +54,7 @@ function create_app_randevous{
         local Tt is 0.
         local Tsync is 0.
         local Ka is 0.
-        function create_sync_node{
+        function find_next_transfer_node_ts{
             local transfer_start_dirvec is -(POSITIONAT(TRGT, TRGT:ORBIT:ETA:PERIAPSIS + TIME:SECONDS) - TRGT:ORBIT:BODY:POSITION).
             function transfer_eta{
                 PARAMETER T.
@@ -57,8 +62,19 @@ function create_app_randevous{
                 RETURN 1000*VANG(transfer_start_dirvec, pos - SHIP:ORBIT:BODY:POSITION).
             }
             local Ta is SHIP:ORBIT:PERIOD.
+            local transfer_node_ts is descend1d(transfer_eta@, TIME:seconds, 10, 0.1, 50).
+            if transfer_node_ts < TIME:seconds{
+                local dt is TIME:seconds - transfer_node_ts.
+                local orbs is CEILING(dt / Ta).
+                set transfer_node_ts to transfer_node_ts + orbs * Ta.
+            }
+            RETURN transfer_node_ts.
+        }
+        function create_sync_node{
+            local transfer_node_ts is find_next_transfer_node_ts().
+            local Ta is SHIP:ORBIT:PERIOD.
             local Tb is TRGT:ORBIT:PERIOD.
-            local time_till_transfer_point is descend1d(transfer_eta@, TIME:seconds, 10, 0.1, 50) - TIME:SECONDS.
+            local time_till_transfer_point is transfer_node_ts - TIME:SECONDS.
             if time_till_transfer_point < 0{
                 set time_till_transfer_point to time_till_transfer_point + Ta.
             }
@@ -108,8 +124,7 @@ function create_app_randevous{
             RETURN Ka.
         }
         function create_transfer_node{
-        local ts is NEXTNODE:TIME.
-        REMOVE NEXTNODE.
+        local ts is find_next_transfer_node_ts().
         ADD NODE(ts, 0, 0, 0).
         local xDirV is (SHIP:BODY:POSITION - POSITIONAT(SHIP, ts)).// Interception point directionV
         local trgOrbRadiusAtX is getOrbRadiusByDir(TRGT:ORBIT, xDirV).
@@ -176,21 +191,19 @@ function create_app_randevous{
         remove_all_nodes().
         print "Align orbit inclination".
         align_orbits().
-        exec_node(NEXTNODE).
-        remove_next_node().
+        exec_next_node().
 
         print "Sync orbits".
         local sync_orbs is create_sync_node().
         IF sync_orbs > 0 {
-            exec_node(NEXTNODE).
+            exec_next_node().
         }
         print "Transfer to the target orbit".
         create_transfer_node().
         print "Complete the transfer".
         complete_transfer().
-        exec_node(NEXTNODE).
-        remove_next_node().
-        exec_node(NEXTNODE).
+        exec_next_node().
+        exec_next_node().
 
         // Here we can wait till the last syncing orbit and if we accumulated any error, we can adjust for it by changing the last lap period.
         // find_transfer_start_time.
@@ -204,9 +217,15 @@ function create_app_randevous{
     local app is  create_app("RANDEVOUS", app_run@, def_cfg()).
     set app:intercept_at_target_pe to {
         set app:cfg:intercept_at_target_true_anomaly to 0.
+        RETURN app.
     }.
     set app:intercept_at_target_ap to {
         set app:cfg:intercept_at_target_true_anomaly to 180.
+        RETURN app.
+    }.
+    set app:warp_all_transfers to {
+        set app:cfg:warp_all_transfers to TRUE.
+        RETURN app.
     }.
     RETURN app.
 }
