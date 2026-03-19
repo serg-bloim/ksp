@@ -30,14 +30,14 @@ function create_app_randevous{
             local trgOrb is TARGET:ORBIT.
             ADD NODE(TIME:seconds + 10, 0, 0, 0).
             function node_time{
-                PARAMETER T, N.
+                PARAMETER N, T.
                 set NEXTNODE:TIME to T.
-                set NEXTNODE:NORMAL to N.        
+                set NEXTNODE:NORMAL to N.
                 local trgOrbNorm is getOrbitNormal(trgOrb).
                 local nodeOrbNorm is getOrbitNormal(NEXTNODE:ORBIT).
                 RETURN 1000*VANG(trgOrbNorm, nodeOrbNorm).
             }
-            local maneuver_time is descend(apply2p(node_time@), LIST(TIME:seconds,0))[0].
+            local maneuver_time is descend(apply2p(node_time@), LIST(0, TIME:SECONDS+SHIP:ORBIT:PERIOD/6))[1].
             IF maneuver_time < TIME:SECONDS {
                 print "Node is in the past".
                 set maneuver_time to descend(apply2p(node_time@), LIST(maneuver_time + SHIP:ORBIT:PERIOD / 2, 0))[0].
@@ -124,61 +124,67 @@ function create_app_randevous{
             RETURN Ka.
         }
         function create_transfer_node{
-        local ts is find_next_transfer_node_ts().
-        ADD NODE(ts, 0, 0, 0).
-        local xDirV is (SHIP:BODY:POSITION - POSITIONAT(SHIP, ts)).// Interception point directionV
-        local trgOrbRadiusAtX is getOrbRadiusByDir(TRGT:ORBIT, xDirV).
-        function find_prograde{
-            PARAMETER p.
-            set NEXTNODE:PROGRADE to p.
-            RETURN ABS(trgOrbRadiusAtX - getOrbRadiusByDir(NEXTNODE:ORBIT, xDirV)).
-        }
-        descend1d(find_prograde@, 0).
-        local P_transfer is getOrbitPeriod(TRGT:ORBIT:BODY, SHIP:ORBIT:PERIAPSIS, TRGT:ORBIT:PERIAPSIS) / 2. // Period of a half transfer orbit
-        local skip_orbits is 0.
-        local skip_orbits_min is 0.
-        local skip_orbits_min_angle is 999.
-        print "P_transfer = " + P_transfer.
-        UNTIL skip_orbits > 1000 {
-            local x_ts is NEXTNODE:TIME + skip_orbits * SHIP:ORBIT:PERIOD + P_transfer.
-            local ang is VANG(POSITIONAT(TRGT, x_ts) - TRGT:ORBIT:BODY:POSITION, xDirV).
-            IF ang < skip_orbits_min_angle{
-                set skip_orbits_min_angle to ang.
-                set skip_orbits_min to skip_orbits.
-                print  " skip_orbits_min="+skip_orbits_min + " skip_orbits_min_angle="+skip_orbits_min_angle.
+            local ts is find_next_transfer_node_ts().
+            ADD NODE(ts, 0, 0, 0).
+            local xDirV is (SHIP:BODY:POSITION - POSITIONAT(SHIP, ts)).// Interception point directionV
+            local trgOrbRadiusAtX is getOrbRadiusByDir(TRGT:ORBIT, xDirV).
+            function find_prograde{
+                PARAMETER p.
+                set NEXTNODE:PROGRADE to p.
+                RETURN ABS(trgOrbRadiusAtX - getOrbRadiusByDir(NEXTNODE:ORBIT, xDirV)).
             }
-            IF ang < 1 {
-                break.
+            descend1d(find_prograde@, 0, 1, 0.1, 50).
+            local P_transfer is getOrbitPeriod(TRGT:ORBIT:BODY, SHIP:ORBIT:PERIAPSIS, TRGT:ORBIT:PERIAPSIS) / 2. // Period of a half transfer orbit
+            local skip_orbits is 0.
+            local skip_orbits_min is 0.
+            local skip_orbits_min_angle is 999.
+            print "P_transfer = " + P_transfer.
+            UNTIL skip_orbits > 1000 {
+                local x_ts is NEXTNODE:TIME + skip_orbits * SHIP:ORBIT:PERIOD + P_transfer.
+                local ang is VANG(POSITIONAT(TRGT, x_ts) - TRGT:ORBIT:BODY:POSITION, xDirV).
+                IF ang < skip_orbits_min_angle{
+                    set skip_orbits_min_angle to ang.
+                    set skip_orbits_min to skip_orbits.
+                    print  " skip_orbits_min="+skip_orbits_min + " skip_orbits_min_angle="+skip_orbits_min_angle.
+                }
+                IF ang < 1 {
+                    break.
+                }
+                set skip_orbits to skip_orbits + 1.
             }
-            set skip_orbits to skip_orbits + 1.
-        }
-        print  " skip_orbits_min="+skip_orbits_min.
-        set NEXTNODE:TIME to NEXTNODE:TIME + skip_orbits * SHIP:ORBIT:PERIOD.
-        function randevous_precise{
-            PARAMETER T_NODE, PROG.
-            set NEXTNODE:TIME to T_NODE.
-            set NEXTNODE:PROGRADE to PROG.
-            function find_min_dist{
-                PARAMETER X_TS.
-                (POSITIONAT(SHIP, X_TS) - POSITIONAT(TRGT, X_TS)):MAG.
+            print  " skip_orbits_min="+skip_orbits_min.
+            set NEXTNODE:TIME to NEXTNODE:TIME + skip_orbits * SHIP:ORBIT:PERIOD.
+            function randevous_precise{
+                PARAMETER T_NODE, PROG.
+                set NEXTNODE:TIME to T_NODE.
+                set NEXTNODE:PROGRADE to PROG.
+                function find_min_dist{
+                    PARAMETER X_TS.
+                    RETURN (POSITIONAT(SHIP, X_TS) - POSITIONAT(TRGT, X_TS)):MAG.
+                }
+                local intercept_T is descend1d(find_min_dist@, NEXTNODE:TIME + NEXTNODE:ORBIT:PERIOD/2).
+                IF EXIT_CODE <> 0{
+                    print "WARNING create_transfer_node->randevous_precise->descend1d failed with EXIT_CODE=" + EXIT_CODE.
+                }
+                RETURN (POSITIONAT(SHIP, intercept_T) - POSITIONAT(TRGT, intercept_T)):MAG.
             }
-            local intercept_T is descend1d(find_min_dist@, NEXTNODE:TIME + NEXTNODE:ORBIT:PERIOD/2).
-            RETURN (POSITIONAT(SHIP, intercept_T) - POSITIONAT(TRGT, intercept_T)):MAG.
-        }
-        // Find the closest approach possible.
-        descend(apply2p(randevous_precise@), LIST(NEXTNODE:TIME, NEXTNODE:PROGRADE), LIST(), 0.1, 20).
+            // Find the closest approach possible.
+            descend(apply2p(randevous_precise@), LIST(NEXTNODE:TIME, NEXTNODE:PROGRADE), LIST(), 0.1, 20).
 
-        // If the approach is too close, it can be risky due to possible collisions.
-        // We need to adjust the node time to enlarge gap to at least @desired_dist_to_target
+            IF EXIT_CODE <> 0{
+                print "ERROR create_transfer_node->descend failed with EXIT_CODE=" + EXIT_CODE.
+            }
+            // If the approach is too close, it can be risky due to possible collisions.
+            // We need to adjust the node time to enlarge gap to at least @desired_dist_to_target
 
-        function randevous_gap {
-            PARAMETER T.
-            set NEXTNODE:TIME to T.
-            local intercept_T is T + NEXTNODE:ORBIT:PERIOD/2.
-            local dist is POSITIONAT(SHIP, intercept_T) - POSITIONAT(TRGT, intercept_T).
-            RETURN ABS(dist:MAG - app:cfg:desired_dist_to_target).
-        }
-        descend1d(randevous_gap@, NEXTNODE:TIME).
+            function randevous_gap {
+                PARAMETER T.
+                set NEXTNODE:TIME to T.
+                local intercept_T is T + NEXTNODE:ORBIT:PERIOD/2.
+                local dist is POSITIONAT(SHIP, intercept_T) - POSITIONAT(TRGT, intercept_T).
+                RETURN ABS(dist:MAG - app:cfg:desired_dist_to_target).
+            }
+            descend1d(randevous_gap@, NEXTNODE:TIME).
         }
 
         function complete_transfer{

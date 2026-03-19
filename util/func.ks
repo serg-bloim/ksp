@@ -1,4 +1,5 @@
 RUNONCEPATH("0://util/list.ks").
+print "func.ks loaded".
 function r2{
     PARAMETER X.
     RETURN ROUND(X, 2).
@@ -9,12 +10,15 @@ function descend{
     PARAMETER dx is LIST().
     PARAMETER eps is 0.1.
     PARAMETER max_iters is 5.
-    PARAMETER max_piters is 10.
+    PARAMETER max_piters is 20.
     local CMP_EPS is 0.001.
+    GLOBAL EXIT_CODE is -1. // EXIT_CODE is UNDEFINED
+    GLOBAL EXIT_ITERS is 0.
     if dx:length = 0{
         set dx to map({PARAMETER x. RETURN 1.}, x0).
     }
     if x0:LENGTH <> dx:LENGTH{
+        GLOBAL EXIT_CODE is 1.
         RETURN 1/0.
     }
     local iter is 0.
@@ -24,6 +28,8 @@ function descend{
         set iter to iter + 1.
         if iter > max_iters {
             print "too many iterations".
+            GLOBAL EXIT_ITERS is iter.
+            GLOBAL EXIT_CODE is 2. // Out of iters
             RETURN xs.
         }
         local modifications is FALSE.
@@ -31,70 +37,121 @@ function descend{
             // print "Iter " + iter + "." + pi.
             local a is xs[pi].
             local da is dx[pi].
-            // local center_v is func(xs).
-            // set xs[pi] to a - da.
-            // local left_v is func(xs).
-            // set xs[pi] to a + da.
-            // local right_v is func(xs).
-            local dxx is 2.
-            // if right_v - center_v > CMP_EPS AND left_v - center_v > CMP_EPS {
-            //     // min is between a - da and a + da, no need to expand the range.
-            //     set dxx to 1.
-            // }
-            local piter is 0.
-            until piter > max_piters {
-                set piter to piter + 1.
-                set xs[pi] to a - da.
-                local left_v is func(xs).
-                set xs[pi] to a + da.
-                local right_v is func(xs).
-                set xs[pi] to a.
-                local center_v is func(xs).
-                local left_dv is left_v - center_v.
-                local right_dv is right_v - center_v.
-                // print "pi_"+piter + " a=" + r2(a) + " da=" + r2(da) + " left=" + r2(left_v) + " center=" + r2(center_v) + " right=" + r2(right_v).
-                IF ABS(right_dv) < CMP_EPS AND ABS(left_dv) < CMP_EPS{
-                    // print "EXIT COND 1".
-                    BREAK.
-                } ELSE IF (right_dv > CMP_EPS AND left_dv > CMP_EPS) OR ABS(right_dv) < CMP_EPS OR ABS(left_dv) < CMP_EPS {
-                    // min is between a - da and a + da, no need to expand the range.
-                    // print "FOUND RANGE --- ".
-                    IF da < eps{
-                        // print "EXIT COND 2".
-                        BREAK.
-                    }
-                    set da to da / 4.
-                    set dxx to 1.
-                } ELSE {
-                    IF left_v < right_v {
-                        set a to a - da.
-                    }ELSE{
-                        set a to a + da.
-                    }
-                    set da to da * dxx.
-            // set xs[pi] to a.
-            // set dx[pi] to da.
-            //         print xs.
-            //         print center_v.
-                }
-                set modifications to TRUE.
+            function fi{
+                PARAMETER X.
+                set xs[pi] to X.
+                RETURN func(xs).
             }
-            set xs[pi] to a.
-            set dx[pi] to da.
+            local a_new is descend1d(fi@, a, da, eps, max_piters).
+            if EXIT_CODE <> 0 {
+                print "WARNING descend->descend1d failed with EXIT_CODE=" + EXIT_CODE.
+            }
+            set xs[pi] to a_new.
+            set dx[pi] to (a_new - a) / 16.
         }
         IF NOT MODIFICATIONS {
             // print "FOUND SOLUTION".
+            GLOBAL EXIT_ITERS is iter.
+            GLOBAL EXIT_CODE is 0. // Solved
             RETURN xs.
         }
     }
 }
 function descend1d{
-    PARAMETER func.
+    PARAMETER f.
     PARAMETER x0.
     PARAMETER dx is 1.
     PARAMETER eps is 0.1.
-    PARAMETER max_iters is 10.
-    return descend(apply1p(func), List(x0), List(dx), eps, 2, max_iters)[0].
+    PARAMETER max_iters is 20.
+    GLOBAL EXIT_CODE is -1. // EXIT_CODE is UNDEFINED
+    GLOBAL EXIT_ITERS is 0.
+    function mid{
+        PARAMETER a, b.
+        RETURN (a + b) / 2.
+    }
+    function min3{
+        PARAMETER a, b, c.
+        RETURN min(a, min(b, c)).
+    }
+    
+    local logger is {PARAMETER msg.}.
+    if DEFINED descend1d_logger {
+        set logger to descend1d_logger.
+    }
+    local iters is 0.
+    set dx to ABS(dx).
+    local x_left is x0 - dx.
+    local x_right is x0 + dx.
+    local y_left is f(x_left).
+    local y_right is f(x_right).
+    local y_min is min(y_left, y_right).
+    // expansion
+    local found_bounaries is 0.
+    UNTIL found_bounaries = 2 {
+        set found_bounaries to 0.
+        logger(iters + " Expand f("+r2(x_left)+")="+r2(y_left) + " | f("+r2(x_right)+")="+r2(y_right) + " | f_min="+r2(y_min)).
+        IF y_left > y_min { set found_bounaries to found_bounaries + 1.}
+        ELSE{
+            set x_left to x_left - dx.
+            set y_left to f(x_left).
+        }
+        IF y_right > y_min { set found_bounaries to found_bounaries + 1.}
+        ELSE{
+            set x_right to x_right + dx.
+            set y_right to f(x_right).
+        }
+        set y_min to min3(y_min, y_left, y_right).
+        set dx to dx * 2.
+        set iters to iters + 1.
+        if iters >= max_iters{
+            GLOBAL EXIT_ITERS is iters.
+            GLOBAL EXIT_CODE is 2. // Out of iters
+            RETURN mid(x_left, x_right).
+        }
+    }
+
+    // shrink
+    local x_center is mid(x_left, x_right).
+    local y_center is f(x_center).
+    UNTIL iters >= max_iters {
+        set iters to iters + 1.
+        logger(iters + " Shrink f("+r2(x_left)+")="+r2(y_left) + " | f("+r2(x_center)+")="+r2(y_center) + " | f("+r2(x_right)+")="+r2(y_right) + " dx=" + r2(x_right - x_left)).
+        IF ABS(x_right - x_left) < eps {
+            GLOBAL EXIT_ITERS is iters.
+            GLOBAL EXIT_CODE is 0.
+            RETURN x_center.
+        }
+        local x_mid_left is mid(x_left, x_center).
+        local x_mid_right is mid(x_center, x_right).
+
+        local y_mid_left is f(x_mid_left).
+        local y_mid_right is f(x_mid_right).
+
+        set y_min to min3(y_mid_left, y_center, y_mid_right).
+        if y_mid_left = y_min{
+            set x_right to x_center.
+            set y_right to y_center.
+
+            set x_center to x_mid_left.
+            set y_center to y_mid_left.
+        } ELSE IF y_mid_right = y_min{
+            set x_left to x_center.
+            set y_left to y_center.
+
+            set x_center to x_mid_right.
+            set y_center to y_mid_right.
+        } ELSE {
+            set x_right to x_mid_right.
+            set y_right to y_mid_right.
+
+            set x_left to x_mid_left.
+            set y_left to y_mid_left.
+        }
+    }
+    print "Ran out of iterations " + iters + "/" + max_iters.
+    GLOBAL EXIT_ITERS is iters.
+    GLOBAL EXIT_CODE is 2. // Out of iters
+    return x_center.
 }
 function apply1p{
     PARAMETER func.
