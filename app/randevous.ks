@@ -1,5 +1,6 @@
 RUNONCEPATH("0://util/app.ks").
 RUNONCEPATH("0://app/maneuvers.ks").
+RUNONCEPATH("0://app/orb.ks").
 RUNONCEPATH("0://util/utils.ks").
 RUNONCEPATH("0://util/dbg.ks").
 RUNONCEPATH("0://util/orb.ks").
@@ -22,34 +23,14 @@ function create_app_randevous{
         local exec_next_node is create_exec_next_node():setters
             :remove_node(TRUE)
             :auto_warp(app:cfg:warp_all_transfers)
-            :app:run@.
+            :app():run@.
         local targetOrbInterceptionTrueAnomaly is app:cfg:intercept_at_target_true_anomaly.
         start_reading_input().
         function align_orbits{
-            // improve initial position for the upcoming AN_DN node by taking normal vector for each orb plane, then two normals to those two vectors are the directions to the AN and DN nodes. 
-            local trgOrb is TARGET:ORBIT.
-            ADD NODE(TIME:seconds + 10, 0, 0, 0).
-            function node_time{
-                PARAMETER N, T.
-                set NEXTNODE:TIME to T.
-                set NEXTNODE:NORMAL to N.
-                local trgOrbNorm is getOrbitNormal(trgOrb).
-                local nodeOrbNorm is getOrbitNormal(NEXTNODE:ORBIT).
-                RETURN 1000*VANG(trgOrbNorm, nodeOrbNorm).
-            }
-            local maneuver_time is descend(apply2p(node_time@), LIST(0, TIME:SECONDS+SHIP:ORBIT:PERIOD/6))[1].
-            IF maneuver_time < TIME:SECONDS {
-                print "Node is in the past".
-                set maneuver_time to descend(apply2p(node_time@), LIST(maneuver_time + SHIP:ORBIT:PERIOD / 2, 0))[0].
-            }
-            REMOVE NEXTNODE.
-            // Calculate the desired velocity we need to achieve at the AN/DN node so the orbit aligns with the target orbit.
-            // We need to rotate the velocity vector for the same rotate as from the current normal to the target normal.
-            local alignment_rotation is ROTATEFROMTO(getOrbitNormal(SHIP:ORBIT), getOrbitNormal(trgOrb)).
-            local current_vel is VELOCITYAT(SHIP, maneuver_time):ORBIT.
-            local trg_vel is alignment_rotation * current_vel.
-            local dv is trg_vel - current_vel.
-            create_maneuver_deltav(maneuver_time, dv).
+            create_align_orbit_incl_app()
+                :setters
+                :target_orb_norm_v(getOrbitNormal(TRGT:ORBIT))
+                :app():run().
         }
         local Tt is 0.
         local Tsync is 0.

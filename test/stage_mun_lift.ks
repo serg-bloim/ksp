@@ -5,13 +5,13 @@ create_app_body_lift():setters
     :alt(30000)
     :autostart(FALSE)
     :warp_all_transfers(TRUE)
-    :app
+    :app()
     :run().
 
 create_app_randevous():setters
     :target(TARGET)
     :AUTOSTART(FALSE)
-    :app
+    :app()
     :warp_all_transfers()
     :intercept_at_target_pe()
     :run().

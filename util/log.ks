@@ -64,5 +64,5 @@ declare function also_print{
         print(msg).
     }.
 }
-
-global log_main to also_print(create_rolling_logger("/log/main.log")).
+global log_only_main to create_rolling_logger("/log/main.log").
+global log_main to also_print(log_only_main).

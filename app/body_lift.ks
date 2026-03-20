@@ -181,7 +181,7 @@ function create_app_body_lift{
         create_exec_next_node():setters
             :remove_node(TRUE)
             :auto_warp(app:cfg:warp_all_transfers)
-            :app:run().
+            :app():run().
         stop_reading_input().
         SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
     }

@@ -77,3 +77,7 @@ function getOrbitPeriod{
     local a is (pe + ap + 2* _body:radius) / 2.
     RETURN 2*constant:pi*sqrt(a^3 / _body:mu).
 }
+FUNCTION getNextPeApTs{
+    PARAMETER vsl.
+    RETURN TIME:SECONDS + min(vsl:OBT:ETA:PERIAPSIS, vsl:OBT:ETA:APOAPSIS).
+}

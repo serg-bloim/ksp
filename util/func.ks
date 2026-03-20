@@ -1,5 +1,4 @@
 RUNONCEPATH("0://util/list.ks").
-print "func.ks loaded".
 function r2{
     PARAMETER X.
     RETURN ROUND(X, 2).
