@@ -64,8 +64,7 @@ function create_circular_orbit_app{
                 :target_orb_norm_v(app:cfg:orb_normal_v)
                 :app():run().
 
-            // exec_next_node().
-            exec_node(NEXTNODE).
+            exec_next_node().
         }
         local alt_min is cfg:alt - cfg:alt_err.
         local alt_max is cfg:alt + cfg:alt_err.
@@ -90,12 +89,12 @@ function create_circular_orbit_app{
                     createNodeWithOppositeAlt(nextPeApTs+SHIP:OBT:PERIOD/2, cfg:alt).
                 }
             }
-            // exec_next_node().
-
-            // createNodeWithOppositeAlt(getOppositeExtremumTs(SHIP:OBT), cfg:alt).
-            // exec_next_node().
+            exec_next_node().
+            app:log("Starting the second part of a circular orbit").
+            createNodeWithOppositeAlt(getOppositeExtremumTs(SHIP:OBT), cfg:alt).
+            exec_next_node().
+            app:log("Finished the orbit with PE: "+ r2(SHIP:OBT:PERIAPSIS) + " AP: " + r2(SHIP:OBT:APOAPSIS)).
         }
-        
     }
 
     local app is create_app("CIRCULAR_ORBIT", app_run@, def_cfg(), custom_setters).
@@ -137,4 +136,11 @@ function create_align_orbit_incl_app{
     }
     local app is  create_app("ORBIT:ALIGN", app_run@, def_cfg()).
     RETURN app.
+}
+
+function moveOrbDir{
+    PARAMETER dir. // Dir with up is orb's normal.
+    PARAMETER moveDeg.
+    local rot is ANGLEAXIS(moveDeg, dir:upvector).
+    RETURN rot * dir.
 }

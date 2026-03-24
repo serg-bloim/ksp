@@ -58,10 +58,10 @@ function descend{
 }
 function descend1d{
     PARAMETER f.
-    PARAMETER x0.
+    PARAMETER x0 is 0.
     PARAMETER dx is 1.
     PARAMETER eps is 0.1.
-    PARAMETER max_iters is 20.
+    PARAMETER max_iters is 50.
     GLOBAL EXIT_CODE is -1. // EXIT_CODE is UNDEFINED
     GLOBAL EXIT_ITERS is 0.
     function mid{
@@ -171,5 +171,13 @@ function apply3p{
     RETURN {
         PARAMETER lst.
         RETURN func(lst[0], lst[1], lst[2]).
+    }.
+}
+
+function distTo{
+    PARAMETER val, func.
+    RETURN {
+        PARAMETER X.
+        RETURN ABS(val - func(X)).
     }.
 }

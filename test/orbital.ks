@@ -1,6 +1,6 @@
 // RUNONCEPATH("0://app/body_lift.ks").
 RUNONCEPATH("0://app/randevous.ks").
-// RUNONCEPATH("0://app/landing.ks").
+RUNONCEPATH("0://app/landing.ks").
 RUNONCEPATH("0://util/func.ks").
 RUNONCEPATH("0://util/maneuvers.ks").
 
@@ -16,41 +16,18 @@ RUNONCEPATH("0://util/maneuvers.ks").
 set log_only_main to create_rolling_logger("/log/test/orbit.log").
 set log_main to also_print(log_only_main).
 
-
-remove_all_nodes().
-ADD NODE(TIME:SECONDS + 10, 0, 0, 0).
-descend1d({PARAMETER P.
-    set NEXTNODE:PROGRADE to P.
-    RETURN ABS(NEXTNODE:OBT:APOAPSIS - 30000).
-}, 20, 1, 0.001, 50).
-
-// exec_node(NEXTNODE).
-
-create_exec_next_node():setters
-    :remove_node(FALSE)
-    :auto_warp(TRUE)
-    :app():run().
-
-
-// create_app_randevous():setters
-//     :target(TARGET)
-//     :AUTOSTART(FALSE)
-//     :app()
-//     :warp_all_transfers()
-//     :intercept_at_target_pe()
-//     :run().
-
-
-// create_exec_next_node():setters
-//     :remove_node(TRUE)
-//     :auto_warp(TRUE)
-//     :app():run().
-
-
-
-// create_landing_app():setters
-//     :loc(LATLNG(0, 0))
-//     :show_loc(TRUE)
-//     :warp_all_transfers(TRUE)
-//     :app()
-//     :run().
+CLEARVECDRAWS().
+// print "Test".
+// print BODY:rotationperiod.
+// local dt is 1000.
+// print dt / BODY:rotationperiod * 360.
+// print geopositionOfAt(SHIP:BODY, SHIP:POSITION, TIME:seconds):LNG.
+// print geopositionOfAt(SHIP:BODY, SHIP:POSITION, TIME:seconds+dt):LNG.
+// remove_all_nodes().
+// ADD NODE(TIME:seconds+1000, 0,0,0).
+create_landing_app():setters
+    :loc(LATLNG(20, 20))
+    :show_loc(TRUE)
+    :warp_all_transfers(TRUE)
+    :app()
+    :run().

@@ -10,6 +10,7 @@ function create_exec_next_node{
     function app_run{
         PARAMETER app.
         start_reading_input().
+        app:log("Executing the next node").
         local nd is NEXTNODE.
         local exec_node_triggers_enabled to true.
         local warp_trigger_enabled to true.
@@ -34,15 +35,8 @@ function create_exec_next_node{
         // need to look into the Tsiolkovsky rocket equation to account for
         // the change in mass over time as you burn.
         //
-        local total_fuel_consumption is 0.
-        local total_thrust is 0.
-        LIST ENGINES in eng.
-        for e in eng{
-            if e:IGNITION{
-                set total_fuel_consumption to total_fuel_consumption + e:MAXMASSFLOW * e:THRUSTLIMIT / 100.
-                set total_thrust to total_thrust + e:MAXTHRUST * e:THRUSTLIMIT / 100.
-            }
-        }
+        local total_fuel_consumption is get_total_fuel_consumption().
+        local total_thrust is get_total_thrust().
         // local isp is total_thrust / total_fuel_consumption / G0.
         local stages is get_stages().
         local burn_duration is get_burn_duration(nd:deltav:mag, stages).
@@ -87,6 +81,7 @@ function create_exec_next_node{
             print "The ship is facing the right direction".
         }
         if warp_enabled {
+            app:log("Warping to the node").
             // 10 - seconds before node burn start
             kuniverse:timewarp:warpto(time:seconds + nd:eta - before_midpoint_duration - 10).
         }

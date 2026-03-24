@@ -248,3 +248,25 @@ function visualize_node{
     show_vect(dir:STARVECTOR*rad * 1000, "rad: "+r2(rad), blue, origin).
     show_vect(dv * 1000, "dv: "+r2(dv:MAG), purple, origin).
 }
+
+function get_total_thrust{
+    local total_thrust is 0.
+    LIST ENGINES in eng.
+    for e in eng{
+        if e:IGNITION{
+            set total_thrust to total_thrust + e:MAXTHRUST * e:THRUSTLIMIT / 100.
+        }
+    }
+    RETURN total_thrust.
+}
+
+function get_total_fuel_consumption{
+    local total_fuel_consumption is 0.
+    LIST ENGINES in eng.
+    for e in eng{
+        if e:IGNITION{
+            set total_fuel_consumption to total_fuel_consumption + e:MAXMASSFLOW * e:THRUSTLIMIT / 100.
+        }
+    }
+    RETURN total_fuel_consumption.
+}

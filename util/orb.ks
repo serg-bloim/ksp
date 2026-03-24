@@ -81,3 +81,15 @@ FUNCTION getNextPeApTs{
     PARAMETER vsl.
     RETURN TIME:SECONDS + min(vsl:OBT:ETA:PERIAPSIS, vsl:OBT:ETA:APOAPSIS).
 }
+function show_orb_vec{
+    PARAMETER vec.
+    PARAMETER _BODY is SHIP:BODY.
+    show_vect(vec:NORMALIZED * 2 * _BODY:RADIUS, "", red, _BODY:POSITION).
+}
+function dist_between_angles{
+    PARAMETER deg1.
+    PARAMETER deg2.
+    local ang1 is ABS(deg1 - deg2).
+    local ang2 is 360 - ang1.
+    RETURN min(ang1, ang2).
+}

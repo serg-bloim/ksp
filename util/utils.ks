@@ -216,3 +216,7 @@ declare function bisect_search{
     PRINT "Out of iterations".
     RETURN X.
 }
+function TODO{
+    print "NOT IMPLEMENTED".
+    RETURN 1/0.
+}
