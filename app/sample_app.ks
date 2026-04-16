@@ -9,7 +9,14 @@ function create_sample_app{
         PARAMETER app.
         print "This app prints "+ app:cfg:str.
     }
-    local app is  create_app("SAMPLE_APP", app_run@, def_cfg()).
+    function num2str{
+        PARAMETER num, app.
+        set app:cfg:str to num:to_string.
+    }
+    local custom_setters is LEXICON(
+        "num2str", num2str@
+    ).
+    local app is  create_app("SAMPLE_APP", app_run@, def_cfg(), custom_setters).
     set app:change_string to {
         PARAMETER str.
         set app:cfg:str to str.

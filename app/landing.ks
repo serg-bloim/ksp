@@ -104,7 +104,7 @@ function create_landing_app{
                 :remove_node(TRUE)
                 :auto_warp(app:cfg:warp_all_transfers)
                 :app():run().
-        } 
+        }
         {   // breaking maneuver
             print "breaking maneuver".
             local landing_ts is NEXTNODE:TIME.

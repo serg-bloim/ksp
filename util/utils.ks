@@ -220,3 +220,9 @@ function TODO{
     print "NOT IMPLEMENTED".
     RETURN 1/0.
 }
+function measure_time {
+    parameter block_delegate.
+    local start_time is time:seconds.
+    block_delegate().
+    return time:seconds - start_time.
+}
