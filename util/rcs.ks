@@ -40,13 +40,13 @@ function rcs_move_relative_to_target{
 
     local max_approach_speed is max_speed.
     local approach_speed is max_approach_speed.
-    local aux_dir_v is dst_dir_v_dgt().
-    lock velocity_expected to aux_dir_v:NORMALIZED * approach_speed.
+    local dst_v is dst_dir_v_dgt().
+    lock velocity_expected to dst_v:NORMALIZED * approach_speed.
     lock velocity_actual to SHIP:VELOCITY:ORBIT - TARGET:VELOCITY:ORBIT.
 
-    until aux_dir_v:MAG < 1 { // 10 is just some precision buffer
-        set approach_speed to min(max_approach_speed, get_max_breaking_speed(aux_dir_v:MAG, rcs_acc*0.85)).
-        log_only_main("iter. dist=" + aux_dir_v:MAG + " approach_speed=" + approach_speed + " SHIP:CONTROL:TRANSLATION=" + SHIP:CONTROL:TRANSLATION).
+    until dst_v:MAG < 1 { // 10 is just some precision buffer
+        set approach_speed to min(max_approach_speed, get_max_breaking_speed(dst_v:MAG, rcs_acc*0.85)).
+        log_only_main("iter. dist=" + dst_v:MAG + " approach_speed=" + approach_speed + " SHIP:CONTROL:TRANSLATION=" + SHIP:CONTROL:TRANSLATION).
 
         show_vect(velocity_expected, "vel expected", red, V(20, 0,0)).
         show_vect(velocity_actual, "vel actual", green, V(20, 0,0)).
@@ -54,7 +54,7 @@ function rcs_move_relative_to_target{
         local correction is -SHIP:FACING * dt.
         set SHIP:CONTROL:TRANSLATION to correction / rcs_acc * 1.2.
         wait 0.
-        set aux_dir_v to dst_dir_v_dgt().
+        set dst_v to dst_dir_v_dgt().
     }
 }
 

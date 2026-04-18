@@ -62,11 +62,26 @@ declare function create_condition{
         return time:seconds - stable_since > stable_time.
     }.
 }
+function create_stable_condition{
+    // TODO: rename all uses of create_condition to create_stable_condition and remove create_condition.
+    parameter stable_time, cond.
+    RETURN create_condition(stable_time, cond).
+}
 declare function wait_cond{
     parameter stable_time, predicate.
     local cond to create_condition(stable_time, predicate).
     until cond(){
         wait 0.1.
+    }
+}
+declare function wait_cond2{
+    // TODO: refactor all uses of wait_cond(123, pred) to wait_cond2(pred, 123), and rename wait_cond2 to wait_cond.
+    parameter cond, stable_time is 0, delay is 0.
+    if stable_time > 0{
+        set cond to create_stable_condition(stable_time, cond).
+    }
+    until cond(){
+        wait delay.
     }
 }
 declare function timed_condition{

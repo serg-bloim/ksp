@@ -80,15 +80,10 @@ function create_dock_app{
             }
             wait_facing_aux(1).
             app:log("Pointing to the AUX point 1º").
-            //            wait_facing_aux(0.1).
-            //            app:log("Pointing to the AUX point 0.1º").
-            app:log("Starting the translation").
-            UNLOCK STEERING.
             // Calc max rcs thrust.
-
+            UNLOCK STEERING.
             wait 0.
             SAS ON.
-
             RCS ON.
             app:log("[RCS Acc test] Starting").
             local rcs_acc is find_rcs_acc(5, 1).
@@ -97,8 +92,10 @@ function create_dock_app{
             //            app:log("[RCS Acc test] Expected acc/break time is " + approach_speed / rcs_acc).
             //            local min_breaking_dist is calc_dist(rcs_acc, approach_speed, approach_speed / rcs_acc).
             //            app:log("[RCS Acc test] Expected acc/break distance is " + min_breaking_dist).
+            app:log("Starting the translation").
             UNTIL (app:cfg:target_port:POSITION + approach):MAG < 10{
-                local aux is next_aux.
+                app:log("aux_dir_v: " + aux_dir_v).
+                set aux to next_aux.
                 IF (approach - aux):MAG < 5 {
                     app:log("Heading to the approach point").
                 } ELSE {
@@ -116,6 +113,21 @@ function create_dock_app{
             set SHIP:CONTROL:TRANSLATION to V(0,0,0).
 
             // RCS towards the auxilary point. Accelerate to 5m/s
+        }
+        {
+            // Align with the port.
+            // Reduce the distance to 10 meters. For instance if the target port is 100 meters away, we can accelerate 45 meters fwd, then brake for 45 meters and then coast for the last 10 meters while doing the final alignment.
+            app:log("Stage 3").
+            app:log("Align direction with the port").
+            lock STEERING to -app:cfg:target_port:FACING.
+            wait_steering_stable().
+            app:log("Ship's direction is aligned with the port").
+            app:log("Place the ship 10m in front of the port").
+            rcs_move_relative_to_target({
+                CLEARVECDRAWS().
+                show_vect(aux, "10m", blue, app:cfg:target_port:POSITION).
+                RETURN app:cfg:target_port:POSITION + app:cfg:target_port:FACING:FOREVECTOR * 10.
+            }, rcs_acc, 3).
         }
         print "This app prints "+ app:cfg:my_port.
     }
