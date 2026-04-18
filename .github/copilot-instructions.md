@@ -53,3 +53,10 @@ This is a **Kerbal Space Program (KSP)** automation project written in **kOS Scr
 - **Warp:** `SET WARP TO n` or `WARPTO(time)` to time-accelerate to a future moment.
 - **Bodies:** Kerbin (home planet), Mun (moon of Kerbin), Minmus, Duna, etc.
 
+## App framework Usage
+- apps are created with the helper function, for instance create_sample_app() usually without any parameters.
+- Most of the configuration is done via :setters prefix, for instance `:setters:auto_warp(TRUE)`.
+- ALl the app configuration is defined within the `cfg` LEXICON, which is populated in the app helper function.
+- For each configuration parameter defined in the `cfg` LEXICON, a corresponding setter function is automatically generated with the same name as the parameter. For instance, if `auto_warp` is defined in the `cfg` LEXICON, then a setter function `auto_warp(value)` will be generated that sets the value of `auto_warp` in the `cfg` LEXICON to the provided value and returns the app object itself to allow for chaining.
+- Besides a direct setter for each parameter there could be also defined custom setters, which are defined in the `custom_setters` LEXICON. For instance, if there is a custom setter `target_body(body_name)` defined in the `custom_setters` LEXICON, then a setter function `target_body(body_name)` will be generated that does some custom initialization and returns the app object itself to allow for chaining.
+- :setters object also has :app() prefix that returns the app object itself to allow invoking app metods like :run() after setting the configuration parameters. For instance, `:setters:auto_warp(TRUE):app():run()` will set the `auto_warp` configuration parameter to TRUE and then run the app.

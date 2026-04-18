@@ -45,20 +45,21 @@ function create_dock_app{
                 //                show_rot(app:cfg:target_port:FACING, app:cfg:target_port:POSITION).
             }
         }
-        { // Get to the auxilary point.
+        { // Get to the approach point by passing auxilary points if nexessary.
             app:log("Stage 2").
             function get_auxilary_dir{
-                PARAMETER approach_point_v. // vector from the target port to the approach point.
+                PARAMETER approach_dir_v. // vector from the target port to the approach point.
                 local ship_v is -app:cfg:target_port:POSITION. // vector from the target port to the ship.
-                IF VANG(ship_v, approach_point_v) <= 90 {
-                    RETURN approach_point_v:NORMALIZED.
+                IF VANG(ship_v, approach_dir_v) <= 90 {
+                    RETURN approach_dir_v:NORMALIZED.
                 }
-                local norm is VCRS(ship_v, approach_point_v).
+                local norm is VCRS(ship_v, approach_dir_v).
                 local ship_dir is LOOKDIRUP(ship_v, norm).
                 RETURN ship_dir:STARVECTOR.
             }
-
-            local aux is get_auxilary_dir(app:cfg:target_port:FACING:FOREVECTOR) * app:cfg:approach_dist.
+            lock approach to app:cfg:target_port:FACING:FOREVECTOR * app:cfg:approach_dist.
+            lock next_aux to get_auxilary_dir(approach) * app:cfg:approach_dist.
+            local aux is next_aux.
             show_vect(app:cfg:target_port:FACING:FOREVECTOR * 10, "port", red, app:cfg:target_port:POSITION).
             show_vect(-app:cfg:target_port:POSITION, "ship", red, app:cfg:target_port:POSITION).
             show_vect(aux, "aux", blue, app:cfg:target_port:POSITION).
@@ -96,23 +97,21 @@ function create_dock_app{
             //            app:log("[RCS Acc test] Expected acc/break time is " + approach_speed / rcs_acc).
             //            local min_breaking_dist is calc_dist(rcs_acc, approach_speed, approach_speed / rcs_acc).
             //            app:log("[RCS Acc test] Expected acc/break distance is " + min_breaking_dist).
-            local max_approach_speed is 5.
-            local approach_speed is max_approach_speed.
-            lock velocity_expected to aux_dir_v:NORMALIZED * approach_speed.
-            lock velocity_actual to SHIP:VELOCITY:ORBIT - TARGET:VELOCITY:ORBIT.
-
-            until aux_dir_v:MAG < 1 { // 10 is just some precision buffer
-                set approach_speed to min(max_approach_speed, get_max_breaking_speed(aux_dir_v:MAG, rcs_acc*0.85)).
-                app:log("iter. dist=" + aux_dir_v:MAG + " approach_speed=" + approach_speed + " SHIP:CONTROL:TRANSLATION=" + SHIP:CONTROL:TRANSLATION).
-                CLEARVECDRAWS().
-                show_vect(aux, "aux", blue, app:cfg:target_port:POSITION).
-                show_vect(velocity_expected * 20, "vel expected", red).
-                show_vect(velocity_actual * 20, "vel actual", green).
-                local dt is velocity_expected - velocity_actual.
-                local correction is -SHIP:FACING * dt.
-                set SHIP:CONTROL:TRANSLATION to correction / rcs_acc * 1.2.
-                wait 0.
+            UNTIL (app:cfg:target_port:POSITION + approach):MAG < 10{
+                local aux is next_aux.
+                IF (approach - aux):MAG < 5 {
+                    app:log("Heading to the approach point").
+                } ELSE {
+                    app:log("Heading to the aux point").
+                }
+                rcs_move_relative_to_target({
+                    CLEARVECDRAWS().
+                    show_vect(aux, "aux", blue, app:cfg:target_port:POSITION).
+                    RETURN app:cfg:target_port:POSITION + aux.
+                }, rcs_acc, 5).
             }
+            app:log("Arrived to the approach point").
+            rcs_stop_relative_to_target(app:cfg:target_port:SHIP, app:log).
             app:log("Arrived").
             set SHIP:CONTROL:TRANSLATION to V(0,0,0).
 
