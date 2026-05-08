@@ -1,3 +1,6 @@
+// a * b = c
+// a = c * b:INVERSE
+// b = a:INVERSE * c
 function angleBetweenDirAndVector{
     // If two directions have the same "UP" component from LOOKDIRUP(lookAt,lookUp). Then the function returns an angle from the first dir to the second dir.
     PARAMETER dirFrom.

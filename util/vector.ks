@@ -9,6 +9,10 @@ function reflect{
     RETURN rot * _v.
 }
 function absv{
-    PARAMETER v.
-    RETURN V(ABS(v:X), ABS(v:Y), ABS(v:Z)).
+    PARAMETER _v.
+    RETURN V(ABS(_v:X), ABS(_v:Y), ABS(_v:Z)).
+}
+function project_v{
+    PARAMETER a, b. // Project vector a onto b.
+    RETURN (a*b) * b:NORMALIZED.
 }

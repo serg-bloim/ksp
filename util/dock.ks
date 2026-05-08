@@ -1,7 +1,7 @@
 function is_matching_docking_port {
     PARAMETER other_part.
     PARAMETER my_port.
-    IF other_part:HASMODULE("DockingPortModule") AND my_port:HASMODULE("DockingPortModule") {
+    IF other_part:HASMODULE("ModuleDockingNode") AND my_port:HASMODULE("ModuleDockingNode") {
         RETURN other_part:NODETYPE = my_port:NODETYPE.
     }
     IF my_port:HASMODULE("ModuleGrappleNode") and other_part:TAG = "docking_port" {
@@ -33,11 +33,18 @@ function get_all_docking_ports{
             docks:add(p).
         }
     }
-    for m in target_vessel:MODULESNAMED("DockingPortModule") {
+    for m in target_vessel:MODULESNAMED("ModuleDockingNode") {
         local p is m:PART.
         if p:TAG <> "docking_port" {
             docks:add(p).
         }
     }
     return docks.
+}
+function steer_port{
+    PARAMETER port. // part of the docking port you want to steer.
+    PARAMETER target_dir_dlg. // the direction you want the port to face.
+    local port_to_ship_dir_transform is -port:FACING * SHIP:FACING. // this transformation represents the rotatoin of the part's direction into the ship's direction.
+    // If you calculate c = a * port_to_ship_dir_transform, then c is the direction where you need to steer the ship to make the port face the direction a.
+    lock STEERING to target_dir_dlg() * port_to_ship_dir_transform.
 }

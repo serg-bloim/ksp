@@ -1,4 +1,7 @@
 RUNONCEPATH("util/rcs.ks").
+RUNONCEPATH("0://util/dock.ks").
+RUNONCEPATH("0://util/dbg.ks").
 
 WAIT UNTIL HASTARGET.
-reach_relative_speed_to_target(TARGET, V(0,1,0)).
+rcs_stop_relative_to_target(TARGET, 3, log_only_main).
+print 123.
